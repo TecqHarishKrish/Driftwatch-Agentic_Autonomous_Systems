@@ -1,0 +1,24 @@
+# DriftWatch — MVP Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core LLM + Agent Framework
+langgraph==0.2.28
+langchain==0.3.7
+langchain-groq==0.2.1
+groq==0.11.0
+
+# Embeddings (local, free, fast)
+sentence-transformers==3.1.1
+
+# Numerical / ML
+numpy==1.26.4
+scikit-learn==1.5.2
+
+# Web Dashboard
+flask==3.0.3
+flask-cors==5.0.0
+
+# Utilities
+python-dotenv==1.0.1
+colorama==0.4.6
+rich==13.8.1
