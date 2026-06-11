@@ -587,7 +587,7 @@ A structured artifact emitted after task completion. Acts as a tamper-evident au
 
 | Member | Role |
 |--------|------|
-| Harishwar R (Krish) | Architecture, core engine, agent integration |
+| Harishwar R | Architecture, core engine, agent integration |
 | Sandhiya V S | Dashboard, demo scenarios |
 | Sukant B | Benchmarking, testing |
 
