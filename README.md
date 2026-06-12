@@ -1,6 +1,6 @@
 <div align="center">
         
-# 🧭 DriftWatch
+# DriftWatch
 
 ### Real-Time Goal Coherence Monitoring for Autonomous AI Agents
 
