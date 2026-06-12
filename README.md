@@ -583,7 +583,7 @@ A structured artifact emitted after task completion. Acts as a tamper-evident au
 
 ## 👥 Team
 
-**Team Fusion Force** — Built for [FAR AWAY International Hackathon 2026](https://unstop.com)
+**Team Fusion Force** — Built for [FAR AWAY International Hackathon 2026]([https://unstop.com](https://unstop.com/hackathons/far-away-zuup-1677472))
 
 | Member | Role |
 |--------|------|
