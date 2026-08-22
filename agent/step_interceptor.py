@@ -90,3 +90,91 @@ class StepInterceptor:
 
     def get_all_events(self) -> List[dict]:
         return [e.to_dict() for e in self.events]
+
+from core.human_readable import build_explanation, get_severity_label
+from core.intervention_gate import request_user_decision
+from core.workflow_session import WorkflowSession, CorrectionEvent, CorrectionStatus
+
+def dispatch_correction_with_gate(tier, drift_type, session_id,
+                                   step_number, sse_push_fn=None):
+    """
+    Wraps existing correction dispatch with human-in-the-loop gate
+    for Tier 3 and Tier 4 corrections.
+    sse_push_fn: callable that pushes an SSE event to the dashboard.
+    """
+    explanation = build_explanation(tier, drift_type)
+    severity    = get_severity_label(tier)
+
+    if tier <= 2:
+        # Auto-apply: existing correction logic runs unchanged
+        status = CorrectionStatus.AUTO_APPLIED
+        if sse_push_fn:
+            sse_push_fn("correction_applied", {
+                "tier": tier,
+                "drift_type": drift_type,
+                "message": explanation,
+                "severity": severity,
+                "step": step_number
+            })
+    else:
+        # Gate: push pending event, block until user decides
+        if sse_push_fn:
+            sse_push_fn("correction_pending", {
+                "tier": tier,
+                "drift_type": drift_type,
+                "message": explanation,
+                "severity": severity,
+                "step": step_number,
+                "session_id": session_id
+            })
+        decision = request_user_decision(session_id, {
+            "tier": tier,
+            "drift_type": drift_type,
+            "message": explanation,
+            "step": step_number
+        })
+        if decision == "approve":
+            status = CorrectionStatus.USER_APPROVED
+        else:
+            status = CorrectionStatus.USER_REJECTED
+            # User rejected — log and return, do not apply correction
+            _log_correction_event(
+                session_id, step_number, tier, drift_type,
+                "user_rejected_no_correction", status, decision
+            )
+            if sse_push_fn:
+                sse_push_fn("correction_rejected", {
+                    "tier": tier,
+                    "drift_type": drift_type,
+                    "step": step_number,
+                    "message": "User chose to continue without correction."
+                })
+            return "rejected"
+
+    _log_correction_event(
+        session_id, step_number, tier, drift_type,
+        explanation, status,
+        "auto" if tier <= 2 else decision
+    )
+    return "applied"
+
+def _log_correction_event(session_id, step_number, tier, drift_type,
+                           correction_applied, status, user_decision):
+    try:
+        ws_data = WorkflowSession.load(session_id)
+        event = {
+            "step_number": step_number,
+            "tier": tier,
+            "drift_type": drift_type,
+            "correction_applied": correction_applied,
+            "status": status.value if hasattr(status, 'value') else str(status),
+            "user_decision": user_decision,
+            "timestamp": __import__('time').time()
+        }
+        ws_data.setdefault("drift_events", []).append(event)
+        import json, os
+        with open(f"sessions/{session_id}.json", "w") as f:
+            json.dump(ws_data, f, indent=2)
+    except Exception as e:
+        print(f"[DriftWatch] Warning: Could not log correction event: {e}")
+

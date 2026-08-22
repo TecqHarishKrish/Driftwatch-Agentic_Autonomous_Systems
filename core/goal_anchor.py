@@ -21,11 +21,16 @@ def decompose_goal(task: str) -> List[str]:
         from groq import Groq
         client = Groq(api_key=os.getenv("GROQ_API_KEY"))
         resp = client.chat.completions.create(
-            model=os.getenv("GROQ_MODEL","llama-3.1-70b-versatile"),
+            model=os.getenv("GROQ_MODEL","groq/compound"),
             messages=[{"role":"user","content":DECOMPOSE_PROMPT.format(task=task)}],
-            max_tokens=400, temperature=0.1,
+            max_tokens=1024, temperature=0.1,
         )
-        raw = resp.choices[0].message.content.strip()
+        content = resp.choices[0].message.content
+        if content is None:
+            raise ValueError("Groq returned empty or None content.")
+        raw = content.strip()
+        import re
+        raw = re.sub(r'<think>.*?(?:</think>|$)', '', raw, flags=re.DOTALL).strip()
         if "```" in raw:
             raw = raw.split("```")[1].lstrip("json").strip()
         subgoals = json.loads(raw)
@@ -69,6 +74,9 @@ class GoalAnchor:
     @property
     def all_vectors(self):
         return [self.task_vector] + self.subgoal_vectors
+
+    def decompose(self, task: str) -> List[str]:
+        return decompose_goal(task)
 
     def to_dict(self):
         return {"task": self.task, "subgoals": self.subgoals, "anchored": self._anchored}

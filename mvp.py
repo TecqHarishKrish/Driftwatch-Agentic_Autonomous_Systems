@@ -173,12 +173,12 @@ def cmd_verify():
             c = Groq(api_key=os.getenv("GROQ_API_KEY"))
             t0 = time.time()
             r = c.chat.completions.create(
-                model="llama-3.1-8b-instant",
+                model=os.getenv("GROQ_MODEL_MINI", "groq/compound-mini"),
                 messages=[{"role": "user", "content": "Reply with exactly: VERIFIED"}],
                 max_tokens=5, temperature=0,
             )
             ms = (time.time() - t0) * 1000
-            reply = r.choices[0].message.content.strip()
+            reply = (r.choices[0].message.content or "").strip()
             print(f"  {green('PASS')}  Groq LLM: '{reply}' ({ms:.0f}ms)")
         except Exception as e:
             print(f"  {red('FAIL')}  Groq LLM: {e}")

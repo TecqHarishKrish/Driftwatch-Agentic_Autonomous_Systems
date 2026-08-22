@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DriftWatch — Coherence Audit & Certificate</title>
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme') || 'dark';
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-theme');
+            }
+        })();
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #080b11;
+            --card-bg: rgba(17, 22, 34, 0.65);
+            --border-color: rgba(255, 255, 255, 0.08);
+            
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --primary-bg: rgba(16, 185, 129, 0.1);
+            --primary-border: rgba(16, 185, 129, 0.25);
+            
+            --warn: #f59e0b;
+            --warn-bg: rgba(245, 158, 11, 0.1);
+            --warn-border: rgba(245, 158, 11, 0.25);
+            
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.1);
+            --danger-border: rgba(239, 68, 68, 0.25);
+            
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --text-dark: #4b5563;
+            
+            --font-outfit: 'Outfit', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-inter);
+            background: radial-gradient(circle at 50% 0%, #111827 0%, var(--bg-color) 70%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        /* Ambient glow */
+        .ambient-glow {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.04) 0%, rgba(0, 0, 0, 0) 70%);
+            top: 10%;
+            left: 20%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Top Certificate Banner */
+        .cert-banner {
+            width: 100%;
+            border-radius: 16px;
+            padding: 24px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            border: 1px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .cert-info {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .cert-title {
+            font-family: var(--font-outfit);
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .cert-meaning {
+            font-size: 13px;
+            opacity: 0.85;
+            line-height: 1.5;
+        }
+
+        .cert-score-display {
+            font-family: monospace;
+            font-size: 24px;
+            font-weight: 700;
+            background: rgba(0, 0, 0, 0.25);
+            padding: 8px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Certificate Colors */
+        .cert-pass {
+            background: linear-gradient(135deg, rgba(6, 78, 59, 0.8) 0%, rgba(16, 185, 129, 0.45) 100%);
+            border-color: rgba(16, 185, 129, 0.35);
+            color: #ffffff;
+            box-shadow: 0 10px 35px rgba(16, 185, 129, 0.15);
+        }
+
+        .cert-warn {
+            background: linear-gradient(135deg, rgba(120, 53, 4, 0.8) 0%, rgba(245, 158, 11, 0.45) 100%);
+            border-color: rgba(245, 158, 11, 0.35);
+            color: #ffffff;
+            box-shadow: 0 10px 35px rgba(245, 158, 11, 0.15);
+        }
+
+        .cert-fail {
+            background: linear-gradient(135deg, rgba(153, 27, 27, 0.8) 0%, rgba(239, 68, 68, 0.45) 100%);
+            border-color: rgba(239, 68, 68, 0.35);
+            color: #ffffff;
+            box-shadow: 0 10px 35px rgba(239, 68, 68, 0.15);
+        }
+
+        /* Middle - Two Column Outputs */
+        .output-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media(max-width: 768px) {
+            .output-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .output-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .output-card.fail-raw {
+            border-color: rgba(239, 68, 68, 0.3);
+            background: rgba(239, 68, 68, 0.03);
+        }
+
+        .output-card.success-corr {
+            border-color: rgba(16, 185, 129, 0.4);
+            background: rgba(16, 185, 129, 0.03);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.03);
+        }
+
+        .output-card h3 {
+            font-family: var(--font-outfit);
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .output-subtitle {
+            font-size: 12px;
+            color: var(--text-dark);
+            margin-bottom: 6px;
+        }
+
+        .output-text {
+            background: rgba(8, 11, 17, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+            font-size: 13.5px;
+            line-height: 1.6;
+            color: var(--text-main);
+            overflow-y: auto;
+            max-height: 350px;
+            white-space: pre-wrap;
+        }
+
+        /* Bottom - Drift Timeline */
+        .timeline-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .timeline-card h3 {
+            font-family: var(--font-outfit);
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .timeline-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .timeline-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 13.5px;
+            gap: 15px;
+        }
+
+        .timeline-step-meta {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .timeline-step-num {
+            font-weight: 700;
+            color: var(--text-muted);
+            min-width: 60px;
+        }
+
+        .timeline-score {
+            font-family: monospace;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .timeline-details {
+            flex: 1;
+            color: var(--text-main);
+            font-size: 13px;
+        }
+
+        .timeline-correction {
+            font-size: 12px;
+            font-style: italic;
+            color: var(--text-muted);
+        }
+
+        /* Row colors based on score levels */
+        .row-green { background: rgba(16, 185, 129, 0.04); border-color: rgba(16, 185, 129, 0.1); }
+        .row-yellow { background: rgba(245, 158, 11, 0.06); border-color: rgba(245, 158, 11, 0.15); }
+        .row-red { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.2); }
+
+        /* Actions Footer */
+        .actions-footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            margin-top: 10px;
+        }
+
+        .btn-action {
+            font-family: var(--font-inter);
+            font-size: 13px;
+            font-weight: 600;
+            padding: 14px 28px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            outline: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-export {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+        }
+
+        .btn-export:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-new-run {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #080b11;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
+        }
+
+        .btn-new-run:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+        }
+
+        /* Theme toggle button styling */
+        .theme-toggle-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .theme-toggle-btn:hover {
+            transform: scale(1.08);
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+        .theme-toggle-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .moon-icon {
+            display: none;
+        }
+        .sun-icon {
+            display: block;
+        }
+        :root.light-theme .moon-icon {
+            display: block;
+        }
+        :root.light-theme .sun-icon {
+            display: none;
+        }
+
+        /* Light theme overrides */
+        :root.light-theme {
+            --bg-color: #f3f4f6;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --border-color: rgba(0, 0, 0, 0.08);
+            
+            --primary: #10b981;
+            --primary-bg: rgba(16, 185, 129, 0.08);
+            --primary-border: rgba(16, 185, 129, 0.2);
+            
+            --warn: #f59e0b;
+            --warn-bg: rgba(245, 158, 11, 0.08);
+            --warn-border: rgba(245, 158, 11, 0.2);
+            
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.08);
+            --danger-border: rgba(239, 68, 68, 0.2);
+            
+            --text-main: #1f2937;
+            --text-muted: #4b5563;
+            --text-dark: #9ca3af;
+        }
+
+        :root.light-theme body {
+            background: radial-gradient(circle at 50% 0%, #ffffff 0%, var(--bg-color) 70%) !important;
+        }
+
+        :root.light-theme h1,
+        :root.light-theme h2,
+        :root.light-theme h3,
+        :root.light-theme .cert-title {
+            background: linear-gradient(135deg, #111827 40%, #047857 100%) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            color: var(--text-main);
+        }
+
+        :root.light-theme .card,
+        :root.light-theme .metric-box,
+        :root.light-theme .audit-panel {
+            background: rgba(255, 255, 255, 0.85) !important;
+            border-color: rgba(0, 0, 0, 0.08) !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+        }
+
+        :root.light-theme .timeline-step {
+            background: rgba(255, 255, 255, 0.9) !important;
+            border-color: rgba(0, 0, 0, 0.08) !important;
+        }
+
+        :root.light-theme .timeline-step:hover {
+            border-color: rgba(0, 0, 0, 0.15) !important;
+        }
+
+        :root.light-theme .btn-new-run {
+            color: #080b11 !important;
+        }
+
+        :root.light-theme .btn-export {
+            background: rgba(0, 0, 0, 0.03) !important;
+            border-color: rgba(0, 0, 0, 0.12) !important;
+            color: #1f2937 !important;
+        }
+        :root.light-theme .btn-export:hover {
+            background: rgba(0, 0, 0, 0.06) !important;
+            border-color: rgba(0, 0, 0, 0.2) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="themeToggle" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Theme">
+        <!-- Sun icon (for dark mode to switch to light) -->
+        <svg class="sun-icon" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <!-- Moon icon (for light mode to switch to dark) -->
+        <svg class="moon-icon" viewBox="0 0 24 24">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+    </button>
+
+    <div class="ambient-glow"></div>
+
+    <div class="container">
+        <!-- TOP: Coherence Certificate badge -->
+        <div class="cert-banner" id="certBanner">
+            <div class="cert-info">
+                <div class="cert-title" id="certTitle">✓ COHERENCE CERTIFICATE: PENDING</div>
+                <div class="cert-meaning" id="certMeaning">Audit processing...</div>
+            </div>
+            <div class="cert-score-display" id="certScore">—</div>
+        </div>
+
+        <!-- MIDDLE: Two column output comparison -->
+        <div class="output-grid">
+            <!-- Left: Without DriftWatch -->
+            <div class="output-card" id="rawCard">
+                <h3>Without DriftWatch</h3>
+                <span class="output-subtitle">What the agent was producing before correction</span>
+                <div class="output-text" id="rawOutput">Loading raw output...</div>
+            </div>
+
+            <!-- Right: With DriftWatch -->
+            <div class="output-card success-corr" id="correctedCard">
+                <h3>With DriftWatch</h3>
+                <span class="output-subtitle">Verified, corrected output</span>
+                <div class="output-text" id="correctedOutput">Loading corrected output...</div>
+            </div>
+        </div>
+
+        <!-- BOTTOM: Drift Timeline -->
+        <div class="timeline-card">
+            <h3>Drift Timeline</h3>
+            <div class="timeline-list" id="timelineList"></div>
+        </div>
+
+        <!-- ACTIONS FOOTER -->
+        <div class="actions-footer">
+            <button class="btn-action btn-export" onclick="exportAudit()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Download Audit Log
+            </button>
+            
+            <button class="btn-action btn-new-run" onclick="window.location.href='/'">
+                ↺ Run New Task
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const sessionId = window.location.pathname.split("/").pop();
+
+        // Fetch data on load
+        fetch(`/api/review/${sessionId}`)
+            .then(res => res.json())
+            .then(data => {
+                renderCertificate(data.certificate, data.certificate_meaning, data.final_score);
+                
+                document.getElementById("rawOutput").textContent = data.raw_output || "No output generated.";
+                document.getElementById("correctedOutput").textContent = data.corrected_output || "No output generated.";
+                
+                if (data.certificate === "FAIL") {
+                    document.getElementById("rawCard").classList.add("fail-raw");
+                }
+
+                renderTimeline(data.steps, data.drift_timeline);
+            })
+            .catch(err => {
+                console.error("Failed to load review data: ", err);
+                document.getElementById("certMeaning").textContent = "Error compiling audit data.";
+            });
+
+        function renderCertificate(cert, meaning, score) {
+            const banner = document.getElementById("certBanner");
+            const title = document.getElementById("certTitle");
+            const mean = document.getElementById("certMeaning");
+            const scoreDisp = document.getElementById("certScore");
+
+            scoreDisp.textContent = `Avg: ${score.toFixed(3)}`;
+            mean.textContent = meaning;
+
+            banner.className = "cert-banner"; // reset
+            if (cert === "PASS") {
+                banner.classList.add("cert-pass");
+                title.textContent = "✓ COHERENCE CERTIFICATE: PASS";
+            } else if (cert === "WARN") {
+                banner.classList.add("cert-warn");
+                title.textContent = "⚠ COHERENCE CERTIFICATE: WARN";
+            } else {
+                banner.classList.add("cert-fail");
+                title.textContent = "✗ COHERENCE CERTIFICATE: FAIL";
+            }
+        }
+
+        function renderTimeline(steps, events) {
+            const list = document.getElementById("timelineList");
+            list.innerHTML = "";
+
+            if (!steps || steps.length === 0) {
+                list.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">No steps recorded.</div>`;
+                return;
+            }
+
+            steps.forEach(step => {
+                // Find matching event if any
+                const ev = events.find(e => e.step_number === step.step_number);
+                
+                const row = document.createElement("div");
+                row.className = "timeline-row";
+                
+                // Color row based on score
+                if (step.drift_score >= 0.75) {
+                    row.classList.add("row-green");
+                } else if (step.drift_score >= 0.60) {
+                    row.classList.add("row-yellow");
+                } else {
+                    row.classList.add("row-red");
+                }
+
+                let details = step.action;
+                let correctionHtml = "";
+
+                if (ev) {
+                    if (ev.status === "user_rejected" || ev.status === "user_rejected_no_correction") {
+                        correctionHtml = `<span class="timeline-correction" style="color:#f87171;">Correction Rejected: Continue anyway</span>`;
+                    } else if (ev.status === "user_approved" || ev.status === "auto_applied") {
+                        correctionHtml = `<span class="timeline-correction" style="color:#34d399;">Correction Applied: ${ev.correction_applied}</span>`;
+                    }
+                }
+
+                row.innerHTML = `
+                    <div class="timeline-step-meta">
+                        <span class="timeline-step-num">Step ${step.step_number}</span>
+                        <span class="timeline-score">${step.drift_score.toFixed(3)}</span>
+                    </div>
+                    <div class="timeline-details">
+                        <div>${details}</div>
+                        ${correctionHtml ? `<div style="margin-top: 4px;">${correctionHtml}</div>` : ""}
+                    </div>
+                `;
+                
+                list.appendChild(row);
+            });
+        }
+
+        function exportAudit() {
+            window.open(`/api/export/${sessionId}`);
+        }
+
+        function toggleTheme() {
+            const isLight = document.documentElement.classList.toggle('light-theme');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        }
+    </script>
+</body>
+</html>

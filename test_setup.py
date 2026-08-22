@@ -94,7 +94,7 @@ else:
         client = Groq(api_key=groq_key)
         start = time.time()
         resp = client.chat.completions.create(
-            model="llama-3.1-70b-versatile",
+            model=os.getenv("GROQ_MODEL", "groq/compound"),
             messages=[
                 {
                     "role": "user",
@@ -122,7 +122,7 @@ print("\n[4/4] Checking LangGraph...")
 try:
     import langgraph
     import langchain
-    print(f"  OK  LangGraph {langgraph.__version__}")
+    print("  OK  LangGraph package imported successfully")
     print(f"  OK  LangChain {langchain.__version__}")
 except ImportError as e:
     print(f"  FAIL  {e}")

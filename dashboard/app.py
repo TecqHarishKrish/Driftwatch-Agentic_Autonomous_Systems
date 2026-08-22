@@ -7,9 +7,14 @@
 =============================================================
 """
 import os, json, time, queue, threading
-from flask import Flask, Response, jsonify, request
+from flask import Flask, Response, jsonify, request, render_template
 from flask_cors import CORS
 from dotenv import load_dotenv
+
+from core.workflow_session import WorkflowSession, SessionPhase
+from core.goal_anchor import GoalAnchor
+from core.intervention_gate import resolve_decision, get_pending_payload
+from core.human_readable import get_certificate_meaning
 load_dotenv()
 
 app   = Flask(__name__)
@@ -18,6 +23,16 @@ CORS(app)
 # ── Shared state (thread-safe) ────────────────────────────────────────────────
 _clients: list     = []          # one Queue per connected browser tab
 _lock              = threading.Lock()
+
+_sse_queues = {}   # session_id → list of pending SSE events
+
+def push_sse_event(session_id, event_type, data):
+    if session_id not in _sse_queues:
+        _sse_queues[session_id] = []
+    _sse_queues[session_id].append({
+        "event": event_type,
+        "data": data
+    })
 _log:    list      = []          # full event log for page-reload recovery
 _state             = {
     "task": "", "scores": [], "thresholds": [],
@@ -1739,9 +1754,220 @@ connect();
 </html>
 """
 
-@app.route("/")
+@app.route("/observatory")
 def dashboard():
     return DASHBOARD
+
+@app.route("/")
+def index():
+    return render_template("onboarding.html")
+
+@app.route("/execution/<session_id>")
+def execution(session_id):
+    return render_template("execution.html", session_id=session_id)
+
+@app.route("/review/<session_id>")
+def review_page(session_id):
+    return render_template("review.html", session_id=session_id)
+
+@app.route("/api/step1/submit", methods=["POST"])
+def step1_submit():
+    task = request.json.get("task", "").strip()
+    if len(task) < 10:
+        return jsonify({"error": "Task description too short. "
+                        "Please provide more detail."}), 400
+    ws = WorkflowSession(task=task)
+    ws.save()
+    return jsonify({"session_id": ws.session_id, "next_step": 2})
+
+@app.route("/api/step2/decompose", methods=["POST"])
+def step2_decompose():
+    session_id = request.json.get("session_id")
+    try:
+        ws_data = WorkflowSession.load(session_id)
+    except FileNotFoundError:
+        return jsonify({"error": "Session not found"}), 404
+    try:
+        anchors = GoalAnchor().decompose(ws_data["task"])
+    except Exception as e:
+        # Fallback: split task into simple anchors if LLM fails
+        anchors = [ws_data["task"]]
+    ws_data["goal_anchors"] = anchors
+    import json, os
+    os.makedirs("sessions", exist_ok=True)
+    with open(f"sessions/{session_id}.json", "w") as f:
+        json.dump(ws_data, f, indent=2)
+    return jsonify({"anchors": anchors,
+                    "message": "Review these goals. Edit if needed."})
+
+@app.route("/api/step2/confirm", methods=["POST"])
+def step2_confirm():
+    session_id  = request.json.get("session_id")
+    edited      = request.json.get("anchors", [])
+    try:
+        ws_data = WorkflowSession.load(session_id)
+    except FileNotFoundError:
+        return jsonify({"error": "Session not found"}), 404
+    ws_data["goal_anchors"] = edited
+    import json
+    with open(f"sessions/{session_id}.json", "w") as f:
+        json.dump(ws_data, f, indent=2)
+    return jsonify({"next_step": 3})
+
+@app.route("/api/step3/configure", methods=["POST"])
+def step3_configure():
+    session_id = request.json.get("session_id")
+    level      = request.json.get("sensitivity", "medium")
+    risk_map   = {"low": 0.60, "medium": 0.75, "high": 0.88}
+    sensitivity = risk_map.get(str(level).lower(), 0.75)
+    try:
+        ws_data = WorkflowSession.load(session_id)
+    except FileNotFoundError:
+        return jsonify({"error": "Session not found"}), 404
+    ws_data["sensitivity"] = sensitivity
+    import json
+    with open(f"sessions/{session_id}.json", "w") as f:
+        json.dump(ws_data, f, indent=2)
+    return jsonify({"sensitivity": sensitivity, "next_step": 4})
+
+@app.route("/api/step4/launch", methods=["POST"])
+def step4_launch():
+    session_id = request.json.get("session_id")
+    try:
+        ws_data = WorkflowSession.load(session_id)
+    except FileNotFoundError:
+        return jsonify({"error": "Session not found"}), 404
+    ws_data["phase"] = SessionPhase.EXECUTING.value
+    import json
+    with open(f"sessions/{session_id}.json", "w") as f:
+        json.dump(ws_data, f, indent=2)
+
+    def run_agent_task():
+        # Import your existing agent runner here
+        # Pass session_id and push_sse_event callback into it
+        from agent.base_agent import run_with_driftwatch
+        push_fn = lambda etype, data: push_sse_event(
+            session_id, etype, data
+        )
+        try:
+            result = run_with_driftwatch(
+                task        = ws_data["task"],
+                anchors     = ws_data["goal_anchors"],
+                sensitivity = ws_data["sensitivity"],
+                session_id  = session_id,
+                sse_push_fn = push_fn
+            )
+            # Save final output
+            loaded = WorkflowSession.load(session_id)
+            loaded["corrected_output"] = result.get("output", "")
+            loaded["raw_output"]       = result.get("raw_output", "")
+            loaded["phase"]            = SessionPhase.REVIEWING.value
+            with open(f"sessions/{session_id}.json", "w") as f:
+                json.dump(loaded, f, indent=2)
+            push_sse_event(session_id, "execution_complete",
+                           {"session_id": session_id})
+        except Exception as e:
+            push_sse_event(session_id, "execution_error",
+                           {"error": str(e)})
+
+    t = threading.Thread(target=run_agent_task, daemon=True)
+    t.start()
+    return jsonify({"status": "launched", "session_id": session_id})
+
+@app.route("/api/decision/<session_id>", methods=["POST"])
+def user_decision(session_id):
+    decision = request.json.get("decision")
+    if decision not in ("approve", "reject"):
+        return jsonify({"error": "decision must be approve or reject"}), 400
+    resolved = resolve_decision(session_id, decision)
+    if not resolved:
+        return jsonify({"error": "No pending decision for this session"}), 404
+    try:
+        ws_data = WorkflowSession.load(session_id)
+        ws_data.setdefault("user_decisions", []).append({
+            "decision": decision,
+            "timestamp": time.time()
+        })
+        import json
+        with open(f"sessions/{session_id}.json", "w") as f:
+            json.dump(ws_data, f, indent=2)
+    except Exception:
+        pass
+    return jsonify({"status": "decision_recorded", "decision": decision})
+
+@app.route("/api/review/<session_id>")
+def review_data(session_id):
+    try:
+        ws_data = WorkflowSession.load(session_id)
+    except FileNotFoundError:
+        return jsonify({"error": "Session not found"}), 404
+    scores = [s["drift_score"] for s in ws_data.get("steps", [])
+              if isinstance(s.get("drift_score"), (int, float))]
+    avg    = round(sum(scores) / len(scores), 3) if scores else 0.0
+    events = ws_data.get("drift_events", [])
+    high_tier_count = sum(1 for e in events if e.get("tier", 0) >= 3
+                          and e.get("status") != "user_rejected")
+    if avg >= 0.80 and high_tier_count == 0:
+        cert = "PASS"
+    elif avg >= 0.65 or high_tier_count <= 1:
+        cert = "WARN"
+    else:
+        cert = "FAIL"
+    ws_data["coherence_certificate"] = cert
+    ws_data["final_score"]           = avg
+    ws_data["phase"]                 = SessionPhase.COMPLETE.value
+    import json
+    with open(f"sessions/{session_id}.json", "w") as f:
+        json.dump(ws_data, f, indent=2)
+    return jsonify({
+        "raw_output":            ws_data.get("raw_output", ""),
+        "corrected_output":      ws_data.get("corrected_output", ""),
+        "certificate":           cert,
+        "certificate_meaning":   get_certificate_meaning(cert),
+        "final_score":           avg,
+        "drift_timeline":        events,
+        "steps":                 ws_data.get("steps", []),
+        "user_decisions":        ws_data.get("user_decisions", [])
+    })
+
+@app.route("/api/stream/<session_id>")
+def sse_stream(session_id):
+    def generate():
+        seen = 0
+        while True:
+            queue = _sse_queues.get(session_id, [])
+            while seen < len(queue):
+                item = queue[seen]
+                yield f"event: {item['event']}\n"
+                yield f"data: {json.dumps(item['data'])}\n\n"
+                seen += 1
+            time.sleep(0.3)
+            # Check if execution complete
+            if seen > 0 and queue and \
+               queue[-1].get("event") in ("execution_complete", "execution_error"):
+                break
+    return Response(generate(),
+                    mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache",
+                             "X-Accel-Buffering": "no",
+                             "Access-Control-Allow-Origin": "*"})
+
+@app.route("/api/export/<session_id>")
+def export_session(session_id):
+    try:
+        ws_data = WorkflowSession.load(session_id)
+    except FileNotFoundError:
+        return jsonify({"error": "Session not found"}), 404
+    import json
+    response = Response(
+        json.dumps(ws_data, indent=2),
+        mimetype="application/json",
+        headers={
+            "Content-Disposition":
+                f"attachment; filename=driftwatch_audit_{session_id}.json"
+        }
+    )
+    return response
 
 if __name__ == "__main__":
     port = int(os.getenv("DASHBOARD_PORT", 5000))

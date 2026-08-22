@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DriftWatch — Live Agent Execution</title>
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme') || 'dark';
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-theme');
+            }
+        })();
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #080b11;
+            --card-bg: rgba(17, 22, 34, 0.65);
+            --border-color: rgba(255, 255, 255, 0.08);
+            
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --primary-glow: rgba(16, 185, 129, 0.3);
+            --warn: #f59e0b;
+            --warn-glow: rgba(245, 158, 11, 0.3);
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.3);
+            
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --text-dark: #4b5563;
+            
+            --font-outfit: 'Outfit', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-inter);
+            background: radial-gradient(circle at 50% 0%, #111827 0%, var(--bg-color) 70%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 30px;
+            z-index: 1;
+        }
+
+        @media(max-width: 850px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Ambient glowing circles */
+        .ambient-glow {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, rgba(0, 0, 0, 0) 70%);
+            top: 5%;
+            left: 25%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Top Header */
+        .top-header {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            z-index: 1;
+        }
+
+        .title-group h1 {
+            font-family: var(--font-outfit);
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #ffffff 40%, #a7f3d0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .session-badge {
+            font-size: 11px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            padding: 4px 10px;
+            border-radius: 20px;
+            color: var(--text-muted);
+            font-family: monospace;
+            margin-top: 4px;
+            display: inline-block;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--primary);
+            padding: 6px 14px;
+            border-radius: 12px;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary);
+            border-radius: 50%;
+            animation: pulse 1.2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.9); opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.1); opacity: 0.5; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.9); opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* Panel Card */
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Left Panel - Current Step Monitor */
+        #currentStep {
+            gap: 20px;
+            height: 100%;
+        }
+
+        .step-title {
+            font-family: var(--font-outfit);
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .step-number-pill {
+            font-size: 11px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            color: var(--primary);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .action-box {
+            background: rgba(8, 11, 17, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--text-main);
+        }
+
+        .score-bar-container {
+            width: 100%;
+            height: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            margin-top: 10px;
+        }
+
+        .score-bar {
+            height: 100%;
+            width: 0%;
+            border-radius: 10px;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.6s ease;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+        }
+
+        .score-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .score-val {
+            font-size: 18px;
+            font-family: monospace;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-color);
+            padding-top: 16px;
+            margin-top: auto;
+        }
+
+        .status-val {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        /* Right Panel - Event Feed */
+        .feed-header {
+            font-family: var(--font-outfit);
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .feed-count {
+            font-size: 11px;
+            background: rgba(255, 255, 255, 0.06);
+            padding: 3px 8px;
+            border-radius: 20px;
+            color: var(--text-muted);
+        }
+
+        .feed-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 480px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+
+        /* Scrollbar */
+        .feed-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .feed-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .feed-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+        }
+
+        .feed-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: all 0.3s;
+            animation: cardSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes cardSlide {
+            from { opacity: 0; transform: translateX(10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .feed-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .feed-card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .feed-card-tag {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+
+        /* Tags by status/severity */
+        .tag-auto { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: var(--primary); }
+        .tag-review { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); color: var(--warn); }
+        .tag-critical { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--danger); }
+        .tag-ok { background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); color: var(--text-muted); }
+        .tag-rejected { background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.15); color: #f87171; }
+        .tag-approve { background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.15); color: #34d399; }
+
+        .feed-card-message {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .feed-card-score {
+            font-size: 11px;
+            font-family: monospace;
+            color: var(--text-dark);
+            margin-top: 4px;
+        }
+
+        /* INTERVENTION MODAL */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 8, 15, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-box {
+            width: 100%;
+            max-width: 520px;
+            background: #0f172a;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6), 0 0 40px rgba(245, 158, 11, 0.15);
+            padding: 35px;
+            text-align: center;
+            animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes modalPop {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-box h2 {
+            font-family: var(--font-outfit);
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--warn);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .modal-box p {
+            font-size: 14px;
+            color: var(--text-main);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .modal-box #modalMessage {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .countdown-timer {
+            font-size: 13px;
+            color: var(--text-dark);
+            margin-bottom: 24px;
+            font-family: monospace;
+            font-weight: 600;
+        }
+
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn-modal {
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: var(--font-inter);
+            border: none;
+            outline: none;
+        }
+
+        .btn-approve {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #080b11;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.15);
+        }
+
+        .btn-approve:hover {
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-reject {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        .btn-reject:hover {
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        /* Theme toggle button styling */
+        .theme-toggle-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .theme-toggle-btn:hover {
+            transform: scale(1.08);
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+        .theme-toggle-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .moon-icon {
+            display: none;
+        }
+        .sun-icon {
+            display: block;
+        }
+        :root.light-theme .moon-icon {
+            display: block;
+        }
+        :root.light-theme .sun-icon {
+            display: none;
+        }
+
+        /* Light theme overrides */
+        :root.light-theme {
+            --bg-color: #f3f4f6;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --border-color: rgba(0, 0, 0, 0.08);
+            --border-glow: rgba(16, 185, 129, 0.15);
+            
+            --primary: #10b981;
+            --primary-glow: rgba(16, 185, 129, 0.25);
+            --warn: #f59e0b;
+            --warn-glow: rgba(245, 158, 11, 0.2);
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.2);
+            
+            --text-main: #1f2937;
+            --text-muted: #4b5563;
+            --text-dark: #9ca3af;
+        }
+
+        :root.light-theme body {
+            background: radial-gradient(circle at 50% 0%, #ffffff 0%, var(--bg-color) 70%) !important;
+        }
+
+        :root.light-theme h1,
+        :root.light-theme h2,
+        :root.light-theme h3 {
+            background: linear-gradient(135deg, #111827 40%, #047857 100%) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            color: var(--text-main);
+        }
+
+        :root.light-theme .card,
+        :root.light-theme .logs-container,
+        :root.light-theme .status-badge,
+        :root.light-theme .session-badge,
+        :root.light-theme .control-panel {
+            background: rgba(255, 255, 255, 0.85) !important;
+            border-color: rgba(0, 0, 0, 0.08) !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
+        }
+
+        :root.light-theme .log-entry {
+            background: rgba(0, 0, 0, 0.02) !important;
+            border-left: 3px solid rgba(0, 0, 0, 0.1) !important;
+            color: #1f2937 !important;
+        }
+
+        :root.light-theme .log-entry.info { border-left-color: #3b82f6 !important; }
+        :root.light-theme .log-entry.warn { border-left-color: #f59e0b !important; }
+        :root.light-theme .log-entry.error { border-left-color: #ef4444 !important; }
+        :root.light-theme .log-entry.success { border-left-color: #10b981 !important; }
+
+        :root.light-theme .metric-card {
+            background: rgba(0, 0, 0, 0.02) !important;
+            border: 1px solid rgba(0, 0, 0, 0.06) !important;
+        }
+
+        :root.light-theme .goal-item {
+            background: rgba(255, 255, 255, 0.9) !important;
+            border-color: rgba(0, 0, 0, 0.08) !important;
+        }
+
+        :root.light-theme .btn-reject {
+            background: rgba(239, 68, 68, 0.08) !important;
+            border-color: rgba(239, 68, 68, 0.15) !important;
+            color: #ef4444 !important;
+        }
+
+        :root.light-theme .btn-reject:hover {
+            background: rgba(239, 68, 68, 0.12) !important;
+        }
+
+        :root.light-theme .modal-content {
+            background: #ffffff !important;
+            border-color: rgba(0, 0, 0, 0.1) !important;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
+            color: #1f2937 !important;
+        }
+
+        :root.light-theme .modal-content textarea {
+            background: #f9fafb !important;
+            color: #1f2937 !important;
+            border-color: rgba(0, 0, 0, 0.1) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="themeToggle" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Theme">
+        <!-- Sun icon (for dark mode to switch to light) -->
+        <svg class="sun-icon" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <!-- Moon icon (for light mode to switch to dark) -->
+        <svg class="moon-icon" viewBox="0 0 24 24">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+    </button>
+
+    <div class="ambient-glow"></div>
+
+    <!-- Top Header -->
+    <div class="top-header">
+        <div class="title-group">
+            <h1>DriftWatch Live Monitor</h1>
+            <span class="session-badge" id="sessionBadge">Session: —</span>
+        </div>
+        <div class="status-badge" id="statusBadge">
+            <span class="pulse-dot"></span>
+            <span id="statusText">Agent Executing</span>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Left Panel: Monitor -->
+        <div class="panel" id="currentStep">
+            <div class="step-title">
+                <span>Current Step Progress</span>
+                <span class="step-number-pill" id="stepNum">Step —</span>
+            </div>
+            
+            <div class="action-box" id="stepAction">
+                Waiting for agent initialization...
+            </div>
+            
+            <div>
+                <div class="score-meta">
+                    <span>Goal Coherence Score</span>
+                    <span class="score-val" id="scoreVal">—</span>
+                </div>
+                <div class="score-bar-container">
+                    <div class="score-bar" id="scoreBar"></div>
+                </div>
+            </div>
+            
+            <div class="status-row">
+                <span>System Interceptor</span>
+                <span class="status-val" id="stepStatus">STANDBY</span>
+            </div>
+        </div>
+
+        <!-- Right Panel: Event Feed -->
+        <div class="panel">
+            <div class="feed-header">
+                <span>Governance Log</span>
+                <span class="feed-count" id="feedCount">0 events</span>
+            </div>
+            <div class="feed-container" id="eventFeed"></div>
+        </div>
+    </div>
+
+    <!-- Intervention Modal -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-box">
+            <h2>⚠ Agent Correction Required</h2>
+            <p>DriftWatch intercepted critical goal drift. Governance policy requires human approval to perform corrective action.</p>
+            <div id="modalMessage"></div>
+            <div class="countdown-timer" id="modalCountdown">Auto-approving in 120s...</div>
+            <div class="modal-buttons">
+                <button class="btn-modal btn-approve" onclick="sendDecision('approve')">✓ Approve Correction</button>
+                <button class="btn-modal btn-reject" onclick="sendDecision('reject')">✗ Continue Without Correction</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sessionId = window.location.pathname.split("/").pop();
+        document.getElementById("sessionBadge").textContent = `Session: ${sessionId}`;
+
+        const es = new EventSource(`/api/stream/${sessionId}`);
+        let countdownInterval = null;
+        let eventCount = 0;
+
+        es.addEventListener("step_update", e => {
+            const d = JSON.parse(e.data);
+            
+            // Update left panel UI
+            document.getElementById("stepNum").textContent = `Step ${d.step_number} / 5`;
+            document.getElementById("stepAction").textContent = d.action;
+            document.getElementById("scoreVal").textContent = d.drift_score.toFixed(3);
+            
+            const bar = document.getElementById("scoreBar");
+            bar.style.width = (d.drift_score * 100) + "%";
+            
+            if (d.drift_score >= 0.75) {
+                bar.style.backgroundColor = "var(--primary)";
+                bar.style.boxShadow = "0 0 10px var(--primary-glow)";
+                document.getElementById("stepStatus").innerHTML = `<span style="color:var(--primary)">ALIGNED</span>`;
+            } else if (d.drift_score >= 0.60) {
+                bar.style.backgroundColor = "var(--warn)";
+                bar.style.boxShadow = "0 0 10px var(--warn-glow)";
+                document.getElementById("stepStatus").innerHTML = `<span style="color:var(--warn)">SLIGHT DRIFT</span>`;
+            } else {
+                bar.style.backgroundColor = "var(--danger)";
+                bar.style.boxShadow = "0 0 10px var(--danger-glow)";
+                document.getElementById("stepStatus").innerHTML = `<span style="color:var(--danger)">SEVERE DRIFT</span>`;
+            }
+
+            addEventCard(d.step_number, "Step Completed", `Coherence Score: ${d.drift_score.toFixed(3)}`, "ok", `Drift: ${d.drift_type}`);
+        });
+
+        es.addEventListener("correction_applied", e => {
+            const d = JSON.parse(e.data);
+            addEventCard(d.step, "Auto Correction Applied", d.message, d.severity.toLowerCase(), `Tier ${d.tier} | ${d.drift_type}`);
+        });
+
+        es.addEventListener("correction_pending", e => {
+            const d = JSON.parse(e.data);
+            
+            document.getElementById("modalMessage").textContent = d.message;
+            document.getElementById("modal").style.display = "flex";
+            
+            let secs = 120;
+            document.getElementById("modalCountdown").textContent = `Auto-approving in ${secs}s...`;
+            
+            clearInterval(countdownInterval);
+            countdownInterval = setInterval(() => {
+                secs--;
+                document.getElementById("modalCountdown").textContent = `Auto-approving in ${secs}s...`;
+                if (secs <= 0) {
+                    clearInterval(countdownInterval);
+                    sendDecision("approve");
+                }
+            }, 1000);
+        });
+
+        es.addEventListener("correction_rejected", e => {
+            const d = JSON.parse(e.data);
+            addEventCard(d.step, "Correction Blocked", d.message, "rejected", `Tier ${d.tier} | ${d.drift_type}`);
+        });
+
+        es.addEventListener("execution_complete", e => {
+            es.close();
+            // Redirect to review page after 1.5s so user can read complete logs
+            setTimeout(() => {
+                window.location.href = `/review/${sessionId}`;
+            }, 1500);
+        });
+
+        es.addEventListener("execution_error", e => {
+            const d = JSON.parse(e.data);
+            alert("Execution Error: " + d.error);
+        });
+
+        function sendDecision(decision) {
+            clearInterval(countdownInterval);
+            document.getElementById("modal").style.display = "none";
+            
+            fetch(`/api/decision/${sessionId}`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({decision})
+            })
+            .then(res => res.json())
+            .then(data => {
+                addEventCard("—", decision === "approve" ? "User Approved Correction" : "User Rejected Correction", 
+                             decision === "approve" ? "The proposed correction has been authorized." : "The correction was bypassed by user request.", 
+                             decision, "");
+            })
+            .catch(err => console.error("Failed to post decision: ", err));
+        }
+
+        function addEventCard(step, title, message, tag, metadata) {
+            eventCount++;
+            document.getElementById("feedCount").textContent = `${eventCount} events`;
+
+            const feed = document.getElementById("eventFeed");
+            const card = document.createElement("div");
+            card.className = "feed-card";
+            
+            card.innerHTML = `
+                <div class="feed-card-header">
+                    <span class="feed-card-title">Step ${step}: ${title}</span>
+                    <span class="feed-card-tag tag-${tag}">${tag}</span>
+                </div>
+                <div class="feed-card-message">${message}</div>
+                ${metadata ? `<div class="feed-card-score">${metadata}</div>` : ""}
+            `;
+            
+            feed.prepend(card);
+        }
+
+        function toggleTheme() {
+            const isLight = document.documentElement.classList.toggle('light-theme');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        }
+    </script>
+</body>
+</html>

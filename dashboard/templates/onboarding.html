@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DriftWatch — Agent Setup Wizard</title>
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme') || 'dark';
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-theme');
+            }
+        })();
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #080b11;
+            --card-bg: rgba(17, 22, 34, 0.65);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(16, 185, 129, 0.15);
+            
+            --primary: #10b981;
+            --primary-glow: rgba(16, 185, 129, 0.4);
+            --primary-dark: #059669;
+            
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --text-dark: #4b5563;
+            
+            --font-outfit: 'Outfit', sans-serif;
+            --font-inter: 'Inter', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-inter);
+            background: radial-gradient(circle at 50% 0%, #111827 0%, var(--bg-color) 70%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            padding: 20px;
+        }
+
+        /* Ambient glowing circles */
+        .ambient-glow {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+            top: 10%;
+            left: 15%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .ambient-glow-2 {
+            position: absolute;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
+            bottom: 10%;
+            right: 15%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Container */
+        .wizard-container {
+            width: 100%;
+            max-width: 680px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            padding: 40px;
+            position: relative;
+            z-index: 1;
+            transition: border-color 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        .wizard-container:hover {
+            border-color: rgba(16, 185, 129, 0.25);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(16, 185, 129, 0.05);
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .logo-title {
+            font-family: var(--font-outfit);
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff 30%, #a7f3d0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 6px;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* Progress Bar */
+        .progress-bar-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 40px;
+        }
+
+        .progress-step {
+            flex: 1;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-step-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary) 0%, #34d399 100%);
+            border-radius: 4px;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 0 8px var(--primary-glow);
+        }
+
+        /* Cards */
+        .step-card {
+            display: none;
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        .step-card.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            font-family: var(--font-outfit);
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 14px;
+            color: var(--text-main);
+        }
+
+        .instruction {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        /* Inputs */
+        textarea {
+            width: 100%;
+            background: rgba(8, 11, 17, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            color: var(--text-main);
+            font-family: var(--font-inter);
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            transition: all 0.3s;
+            margin-bottom: 6px;
+        }
+
+        textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+        }
+
+        .char-counter {
+            text-align: right;
+            font-size: 11px;
+            color: var(--text-dark);
+            margin-bottom: 24px;
+        }
+
+        /* Buttons */
+        button.btn-primary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 12px;
+            color: #080b11;
+            font-family: var(--font-inter);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 14px;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
+        }
+
+        button.btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+        }
+
+        button.btn-primary:active {
+            transform: translateY(1px);
+        }
+
+        /* Step 2 Subgoals */
+        .anchors-wrapper {
+            background: rgba(8, 11, 17, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 120px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .anchor-chip {
+            display: flex;
+            align-items: center;
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #a7f3d0;
+            gap: 10px;
+            transition: all 0.3s;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .anchor-text {
+            flex: 1;
+            outline: none;
+            cursor: text;
+        }
+
+        .anchor-text:focus {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 4px;
+            padding: 2px 4px;
+        }
+
+        .btn-delete-anchor {
+            background: none;
+            border: none;
+            color: #f87171;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .btn-delete-anchor:hover {
+            opacity: 1;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 500;
+            padding: 10px;
+            width: 100%;
+            cursor: pointer;
+            margin-bottom: 24px;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(16, 185, 129, 0.04);
+        }
+
+        /* Step 3 Sensitivity */
+        .risk-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .risk-btn {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .risk-btn:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .risk-btn.selected {
+            background: rgba(16, 185, 129, 0.08);
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.05);
+        }
+
+        .risk-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-main);
+        }
+
+        .risk-btn.selected .risk-name {
+            color: var(--primary);
+        }
+
+        .risk-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* Step 4 Launch */
+        .summary-box {
+            background: rgba(8, 11, 17, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .summary-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dark);
+        }
+
+        .summary-value {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* Error Message */
+        .error-msg {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            font-size: 13px;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        /* Theme toggle button styling */
+        .theme-toggle-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .theme-toggle-btn:hover {
+            transform: scale(1.08);
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+        .theme-toggle-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .moon-icon {
+            display: none;
+        }
+        .sun-icon {
+            display: block;
+        }
+        :root.light-theme .moon-icon {
+            display: block;
+        }
+        :root.light-theme .sun-icon {
+            display: none;
+        }
+
+        /* Light theme overrides */
+        :root.light-theme {
+            --bg-color: #f3f4f6;
+            --card-bg: rgba(255, 255, 255, 0.85);
+            --border-color: rgba(0, 0, 0, 0.08);
+            --border-glow: rgba(16, 185, 129, 0.1);
+            
+            --primary: #10b981;
+            --primary-glow: rgba(16, 185, 129, 0.25);
+            --primary-dark: #047857;
+            
+            --text-main: #1f2937;
+            --text-muted: #4b5563;
+            --text-dark: #9ca3af;
+        }
+        :root.light-theme body {
+            background: radial-gradient(circle at 50% 0%, #ffffff 0%, var(--bg-color) 70%) !important;
+        }
+        :root.light-theme .logo-title,
+        :root.light-theme h1,
+        :root.light-theme h2,
+        :root.light-theme h3 {
+            background: linear-gradient(135deg, #111827 30%, #047857 100%) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            color: var(--text-main);
+        }
+        :root.light-theme textarea,
+        :root.light-theme input,
+        :root.light-theme select {
+            background: rgba(255, 255, 255, 0.9) !important;
+            color: #1f2937 !important;
+            border-color: rgba(0, 0, 0, 0.12) !important;
+        }
+        :root.light-theme .btn-secondary,
+        :root.light-theme .sensitivity-btn,
+        :root.light-theme .progress-step-dot {
+            background: rgba(0, 0, 0, 0.05) !important;
+            border-color: rgba(0, 0, 0, 0.1) !important;
+            color: #1f2937 !important;
+        }
+        :root.light-theme .sensitivity-btn.active {
+            background: rgba(16, 185, 129, 0.1) !important;
+            border-color: var(--primary) !important;
+            color: var(--primary-dark) !important;
+        }
+        :root.light-theme .anchor-item {
+            background: rgba(255, 255, 255, 0.9) !important;
+            border-color: rgba(0, 0, 0, 0.08) !important;
+        }
+        :root.light-theme .anchor-item:hover {
+            border-color: var(--primary) !important;
+        }
+        :root.light-theme .outline-item {
+            background: rgba(255, 255, 255, 0.9) !important;
+            border-color: rgba(0, 0, 0, 0.08) !important;
+        }
+        :root.light-theme .summary-item {
+            background: rgba(0, 0, 0, 0.02) !important;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+        }
+        :root.light-theme .add-anchor-btn {
+            border: 1px dashed rgba(0, 0, 0, 0.2) !important;
+            color: var(--text-muted) !important;
+        }
+        :root.light-theme .add-anchor-btn:hover {
+            border-color: var(--primary) !important;
+            color: var(--primary-dark) !important;
+        }
+        :root.light-theme .step-dot {
+            background: rgba(0, 0, 0, 0.06) !important;
+            border-color: rgba(0, 0, 0, 0.1) !important;
+        }
+        :root.light-theme .step-dot.active {
+            background: var(--primary) !important;
+            border-color: var(--primary) !important;
+        }
+        :root.light-theme .step-bar-fill {
+            background: rgba(0, 0, 0, 0.05) !important;
+        }
+        :root.light-theme .step-bar-fill-inner {
+            background: var(--primary) !important;
+        }
+        :root.light-theme .btn-primary {
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="themeToggle" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Theme">
+        <!-- Sun icon (for dark mode to switch to light) -->
+        <svg class="sun-icon" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <!-- Moon icon (for light mode to switch to dark) -->
+        <svg class="moon-icon" viewBox="0 0 24 24">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+    </button>
+
+    <div class="ambient-glow"></div>
+    <div class="ambient-glow-2"></div>
+
+    <div class="wizard-container">
+        <!-- Header -->
+        <div class="header">
+            <h1 class="logo-title">DriftWatch Engine</h1>
+            <div class="logo-subtitle">Guided Multi-Step Workflow Onboarding</div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar-container">
+            <div class="progress-step"><div class="progress-step-fill" id="fill1"></div></div>
+            <div class="progress-step"><div class="progress-step-fill" id="fill2"></div></div>
+            <div class="progress-step"><div class="progress-step-fill" id="fill3"></div></div>
+            <div class="progress-step"><div class="progress-step-fill" id="fill4"></div></div>
+        </div>
+
+        <!-- Error Panel -->
+        <div class="error-msg" id="errorPanel"></div>
+
+        <!-- STEP 1 CARD -->
+        <div class="step-card active" id="step1">
+            <h2>What do you want the agent to do?</h2>
+            <div class="instruction">Enter a detailed instruction for the agent. DriftWatch will compile this into discrete checkpoints.</div>
+            <textarea id="taskInput" rows="5" placeholder="Be specific. Example: Research the environmental impact of lithium mining on groundwater quality in South America and write exactly 3 specific policy regulations."></textarea>
+            <div class="char-counter" id="charCount">0 / 500</div>
+            <button class="btn-primary" onclick="submitStep1()">Analyze Task &rarr;</button>
+        </div>
+
+        <!-- STEP 2 CARD -->
+        <div class="step-card" id="step2">
+            <h2>DriftWatch decomposed your goals</h2>
+            <div class="instruction">Review, modify, or add sub-goals. The agent's reasoning will be monitored against these targets. Click any goal to edit text.</div>
+            <div class="anchors-wrapper" id="anchorsContainer"></div>
+            <button class="btn-secondary" onclick="addAnchor()">+ Add new sub-goal</button>
+            <button class="btn-primary" onclick="confirmStep2()">Confirm Goals &rarr;</button>
+        </div>
+
+        <!-- STEP 3 CARD -->
+        <div class="step-card" id="step3">
+            <h2>Configure monitoring sensitivity</h2>
+            <div class="instruction">Set how aggressively DriftWatch should intercept and correct goal drift.</div>
+            <div class="risk-selector">
+                <div class="risk-btn" onclick="setRisk('low')" id="risk-low">
+                    <span class="risk-name">Low Sensitivity (0.60)</span>
+                    <span class="risk-desc">Correct only extreme deviations. Gives the agent higher freedom to execute.</span>
+                </div>
+                <div class="risk-btn selected" onclick="setRisk('medium')" id="risk-medium">
+                    <span class="risk-name">Medium Sensitivity (0.75)</span>
+                    <span class="risk-desc">Recommended. Catches moderate goal substitution and drift.</span>
+                </div>
+                <div class="risk-btn" onclick="setRisk('high')" id="risk-high">
+                    <span class="risk-name">High Sensitivity (0.88)</span>
+                    <span class="risk-desc">Corrects even slight variations. Safest for compliance and precision-critical tasks.</span>
+                </div>
+            </div>
+            <button class="btn-primary" onclick="confirmStep3()">Configure Settings &rarr;</button>
+        </div>
+
+        <!-- STEP 4 CARD -->
+        <div class="step-card" id="step4">
+            <h2>Review and Launch Agent</h2>
+            <div class="instruction">The onboarding is complete. Launch the autonomous agent with real-time guardrails active.</div>
+            <div class="summary-box">
+                <div class="summary-item">
+                    <span class="summary-label">Agent Task</span>
+                    <span class="summary-value" id="summaryTask">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Monitored Sub-Goals</span>
+                    <span class="summary-value" id="summaryAnchorsCount">0 goals anchored</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Monitoring Sensitivity</span>
+                    <span class="summary-value" id="summarySensitivity">Medium (0.75)</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Session ID</span>
+                    <span class="summary-value" id="summarySessionId">—</span>
+                </div>
+            </div>
+            <button class="btn-primary" onclick="launch()">Launch Agent &rarr;</button>
+        </div>
+    </div>
+
+    <script>
+        let sessionId = "";
+        let selectedSensitivity = "medium";
+        let anchorList = [];
+
+        // TextArea char count & max limit
+        const textarea = document.getElementById("taskInput");
+        textarea.addEventListener("input", () => {
+            const len = textarea.value.length;
+            document.getElementById("charCount").textContent = `${len} / 500`;
+            if (len > 500) {
+                textarea.value = textarea.value.substring(0, 500);
+                document.getElementById("charCount").textContent = `500 / 500`;
+            }
+        });
+
+        function showStep(stepNum) {
+            document.querySelectorAll(".step-card").forEach(c => c.classList.remove("active"));
+            document.getElementById(`step${stepNum}`).classList.add("active");
+            
+            // Fills up to current step
+            for (let i = 1; i <= 4; i++) {
+                const fill = document.getElementById(`fill${i}`);
+                if (i < stepNum) {
+                    fill.style.width = "100%";
+                } else if (i === stepNum) {
+                    fill.style.width = "50%";
+                } else {
+                    fill.style.width = "0%";
+                }
+            }
+        }
+
+        // Initialize progress fills
+        showStep(1);
+
+        function showError(msg) {
+            const panel = document.getElementById("errorPanel");
+            panel.textContent = msg;
+            panel.style.display = "block";
+        }
+
+        function hideError() {
+            document.getElementById("errorPanel").style.display = "none";
+        }
+
+        async function submitStep1() {
+            hideError();
+            const task = textarea.value.trim();
+            if (task.length < 10) {
+                showError("Please enter a detailed instruction of at least 10 characters.");
+                return;
+            }
+            try {
+                const res = await fetch("/api/step1/submit", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({task})
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Failed to submit task");
+                
+                sessionId = data.session_id;
+                localStorage.setItem("driftwatch_session", sessionId);
+                
+                // Show step 2 loading state/chips
+                showStep(2);
+                loadStep2Decompose();
+            } catch (err) {
+                showError(err.message);
+            }
+        }
+
+        async function loadStep2Decompose() {
+            const container = document.getElementById("anchorsContainer");
+            container.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">Analyzing goal vector space and decomposing task...</div>`;
+            try {
+                const res = await fetch("/api/step2/decompose", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({session_id: sessionId})
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Failed to decompose task");
+                
+                renderAnchors(data.anchors);
+            } catch (err) {
+                showError(err.message);
+                container.innerHTML = `<div style="text-align:center;color:#f87171;font-size:13px;padding:20px;">Decompose failed. Click confirm to proceed with task outline.</div>`;
+            }
+        }
+
+        function renderAnchors(anchors) {
+            anchorList = anchors;
+            const container = document.getElementById("anchorsContainer");
+            container.innerHTML = "";
+            
+            if (anchorList.length === 0) {
+                container.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">No sub-goals identified. You can add one below.</div>`;
+                return;
+            }
+            
+            anchorList.forEach((anchor, idx) => {
+                const chip = document.createElement("div");
+                chip.className = "anchor-chip";
+                chip.innerHTML = `
+                    <span class="anchor-text" contenteditable="true" onblur="editAnchor(${idx}, this)">${anchor}</span>
+                    <button class="btn-delete-anchor" onclick="deleteAnchor(${idx})">&times;</button>
+                `;
+                container.appendChild(chip);
+            });
+        }
+
+        function addAnchor() {
+            anchorList.push("New sub-goal description");
+            renderAnchors(anchorList);
+        }
+
+        function editAnchor(idx, el) {
+            const text = el.textContent.trim();
+            if (text) {
+                anchorList[idx] = text;
+            } else {
+                deleteAnchor(idx);
+            }
+        }
+
+        function deleteAnchor(idx) {
+            anchorList.splice(idx, 1);
+            renderAnchors(anchorList);
+        }
+
+        async function confirmStep2() {
+            hideError();
+            try {
+                const res = await fetch("/api/step2/confirm", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({session_id: sessionId, anchors: anchorList})
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Failed to confirm goals");
+                
+                showStep(3);
+            } catch (err) {
+                showError(err.message);
+            }
+        }
+
+        function setRisk(level) {
+            selectedSensitivity = level;
+            document.querySelectorAll(".risk-btn").forEach(b => b.classList.remove("selected"));
+            document.getElementById(`risk-${level}`).classList.add("selected");
+        }
+
+        async function confirmStep3() {
+            hideError();
+            try {
+                const res = await fetch("/api/step3/configure", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({session_id: sessionId, sensitivity: selectedSensitivity})
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Failed to configure sensitivity");
+                
+                populateSummary();
+                showStep(4);
+            } catch (err) {
+                showError(err.message);
+            }
+        }
+
+        function populateSummary() {
+            document.getElementById("summaryTask").textContent = textarea.value.trim();
+            document.getElementById("summaryAnchorsCount").textContent = `${anchorList.length} sub-goals anchored`;
+            
+            const displayNames = {"low": "Low Sensitivity (0.60)", "medium": "Medium Sensitivity (0.75)", "high": "High Sensitivity (0.88)"};
+            document.getElementById("summarySensitivity").textContent = displayNames[selectedSensitivity] || "Medium (0.75)";
+            document.getElementById("summarySessionId").textContent = sessionId;
+        }
+
+        async function launch() {
+            hideError();
+            try {
+                const res = await fetch("/api/step4/launch", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({session_id: sessionId})
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Failed to launch agent");
+                
+                window.location.href = `/execution/${sessionId}`;
+            } catch (err) {
+                showError(err.message);
+            }
+        }
+
+        function toggleTheme() {
+            const isLight = document.documentElement.classList.toggle('light-theme');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        }
+    </script>
+</body>
+</html>

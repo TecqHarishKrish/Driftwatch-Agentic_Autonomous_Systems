@@ -141,7 +141,7 @@ class CorrectionEngine:
         else:
             result = self._make_abort(step_num, score, drift_type, "Drift too severe")
 
-        ev = CorrectionEvent(step_num, tier, drift_type, score, result["correction_msg"])
+        ev = CorrectionEvent(step_num, tier, drift_type, score, str(result["correction_msg"]))
         self.corrections.append(ev)
         if cp:
             self.retry_map[cp.step_num] = self.retry_map.get(cp.step_num, 0) + 1

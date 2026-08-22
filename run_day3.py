@@ -121,7 +121,7 @@ def run_with_correction(task: str, inject_drift_at: int = 3) -> dict:
                 score=event.score,
                 threshold=event.threshold,
                 drift_type=event.drift_type,
-                current_prompt_context=step_data.get("step_output", ""),
+                context=step_data.get("step_output", ""),
             )
 
             # Push correction banner to dashboard
