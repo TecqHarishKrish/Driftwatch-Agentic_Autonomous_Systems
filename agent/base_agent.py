@@ -79,9 +79,7 @@ def invoke_with_retry(llm, messages):
                 return llm.invoke(messages)
             except Exception as e2:
                 print(f"[Groq] Retry failed: {e2}")
-                class MockResponse:
-                    content = "Error: Groq Rate Limit. Partial output: could not retrieve response due to rate limit."
-                return MockResponse()
+                raise e2
         raise e
 
 def planner_node(state: AgentState) -> dict:
@@ -139,7 +137,7 @@ def executor_node(state: AgentState) -> dict:
         SystemMessage(content=EXECUTOR_SYS),
         HumanMessage(content=
             f"Main task: {state['task']}\n"
-            f"Step {idx+1}/5: {desc}{prev}\n"
+            f"Step {idx+1}/{len(plan)}: {desc}{prev}\n"
             f"Return JSON:"
         )
     ])
@@ -165,7 +163,7 @@ def executor_node(state: AgentState) -> dict:
     parsed["step_num"]  = idx + 1
     parsed["step_desc"] = desc
 
-    print(f"\n[Agent] Step {idx+1}/5 | {parsed['current_focus'][:70]}")
+    print(f"\n[Agent] Step {idx+1}/{len(plan)} | {parsed['current_focus'][:70]}")
     return {"step_outputs": [parsed], "current_step": idx + 1}
 
 def should_continue(state: AgentState) -> str:
@@ -350,6 +348,21 @@ def run_with_driftwatch(task: str, anchors: List[str], sensitivity: float,
     planner_update = planner_node(state)
     state.update(planner_update)
 
+    if session_id:
+        try:
+            from core.workflow_session import WorkflowSession, save_session_dict
+            ws_data = WorkflowSession.load(session_id)
+            ws_data["total_steps"] = len(state["plan"])
+            save_session_dict(session_id, ws_data)
+        except Exception as e:
+            print(f"[DriftWatch] Warning: could not save total steps: {e}")
+
+    if sse_push_fn:
+        sse_push_fn("agent_start", {
+            "total_steps": len(state["plan"]),
+            "goals": anchors
+        })
+
     raw_step_outputs = []
 
     while state["current_step"] < len(state["plan"]):
@@ -368,7 +381,7 @@ def run_with_driftwatch(task: str, anchors: List[str], sensitivity: float,
             latest_step_output.update(injections[sn])
 
         # Intercept step
-        ev = interceptor.intercept(sn, latest_step_output)
+        ev = interceptor.intercept(sn, latest_step_output, len(state["plan"]))
         
         # Save raw output (with drift but before correction)
         raw_step_outputs.append(dict(latest_step_output))
@@ -380,6 +393,7 @@ def run_with_driftwatch(task: str, anchors: List[str], sensitivity: float,
         # Log StepRecord
         if session_id:
             try:
+                from core.workflow_session import WorkflowSession, save_session_dict
                 ws_data = WorkflowSession.load(session_id)
                 step_rec = {
                     "step_number": sn,
@@ -390,8 +404,7 @@ def run_with_driftwatch(task: str, anchors: List[str], sensitivity: float,
                     "timestamp": __import__('time').time()
                 }
                 ws_data.setdefault("steps", []).append(step_rec)
-                with open(f"sessions/{session_id}.json", "w") as f:
-                    json.dump(ws_data, f, indent=2)
+                save_session_dict(session_id, ws_data)
 
                 if sse_push_fn:
                     sse_push_fn("step_update", step_rec)

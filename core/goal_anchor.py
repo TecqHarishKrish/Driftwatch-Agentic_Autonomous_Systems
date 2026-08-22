@@ -9,10 +9,14 @@ from typing import List
 from dotenv import load_dotenv
 load_dotenv()
 
-DECOMPOSE_PROMPT = """Break this task into exactly 4 specific sub-goals.
-Return ONLY a JSON array of 4 strings.
-Each sub-goal: 1 sentence, specific, directly related to the task.
-No markdown, no extra text — just the JSON array.
+DECOMPOSE_PROMPT = """You are an advanced AI safety agent decomposition system. Your task is to analyze the user's high-level task and break it down into exactly 4 or 5 specific, actionable, and concrete sub-goals.
+
+CRITICAL INSTRUCTIONS:
+- Do NOT generate generic steps like "Research and gather relevant information", "Process the data", "Synthesize findings", or "Produce the requested output".
+- Each sub-goal must be directly derived from the user's input, mentioning the specific topics, cybersecurity concepts, analytical steps, or report requirements mentioned in the task.
+- Each sub-goal must be exactly 1 clear, concise sentence.
+- Return ONLY a JSON array of strings. Do NOT include markdown code blocks, conversational introductions, or notes. Just return the JSON array.
+
 Task: {task}"""
 
 
@@ -35,15 +39,42 @@ def decompose_goal(task: str) -> List[str]:
             raw = raw.split("```")[1].lstrip("json").strip()
         subgoals = json.loads(raw)
         if isinstance(subgoals, list) and len(subgoals) >= 2:
-            return subgoals[:5]
+            return [s.strip() for s in subgoals[:5] if s.strip()]
     except Exception as e:
         print(f"[GoalAnchor] decompose failed: {e}")
+
+    # Specific Heuristic Fallback Parser
+    import re
+    # Split task by clauses to capture task-specific instructions
+    parts = [p.strip() for p in re.split(r'[,;.]| and | or ', task) if len(p.strip()) > 8]
+    
+    # Filter and format clauses into goals
+    goals = []
+    for p in parts:
+        # Capitalize and clean punctuation
+        p = p[0].upper() + p[1:] if p else ""
+        if p.endswith("."):
+            p = p[:-1]
+        
+        # Avoid generic sentences
+        if not any(g in p.lower() for g in ["research information", "process", "gather info", "produce output"]):
+            goals.append(p)
+
+    # If the parser identified distinct task-specific statements, return them
+    if len(goals) >= 3:
+        return goals[:5]
+
+    # Otherwise, extract high-value keywords to construct targeted goals
+    words = [w for w in re.findall(r'\b\w+\b', task) if len(w) > 4]
+    keywords = " ".join(words[:4]) if words else "the requested task"
+    
     return [
-        f"Understand and analyze the requirements of: {task[:80]}",
-        f"Research and gather relevant information for the task",
-        f"Process and synthesize the gathered information",
-        f"Produce the specific output as requested in the task",
+        f"Identify key parameters and requirements regarding {keywords}.",
+        f"Analyze structural factors and components associated with {keywords}.",
+        f"Evaluate safety metrics and risk thresholds for {keywords}.",
+        f"Deliver structured recommendations and final report for {keywords}."
     ]
+
 
 
 class GoalAnchor:

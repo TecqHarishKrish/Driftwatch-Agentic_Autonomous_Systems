@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DriftWatch — Live Agent Execution</title>
+    <title>DriftWatch — Live Agent Monitor</title>
     <script>
         (function() {
             const theme = localStorage.getItem('theme') || 'dark';
@@ -21,11 +21,13 @@
             
             --primary: #10b981;
             --primary-dark: #059669;
-            --primary-glow: rgba(16, 185, 129, 0.3);
+            --primary-glow: rgba(16, 185, 129, 0.2);
             --warn: #f59e0b;
-            --warn-glow: rgba(245, 158, 11, 0.3);
+            --warn-glow: rgba(245, 158, 11, 0.2);
             --danger: #ef4444;
-            --danger-glow: rgba(239, 68, 68, 0.3);
+            --danger-glow: rgba(239, 68, 68, 0.2);
+            --info: #3b82f6;
+            --info-glow: rgba(59, 130, 246, 0.2);
             
             --text-main: #f3f4f6;
             --text-muted: #9ca3af;
@@ -46,7 +48,7 @@
             background: radial-gradient(circle at 50% 0%, #111827 0%, var(--bg-color) 70%);
             color: var(--text-main);
             min-height: 100vh;
-            padding: 40px 20px;
+            padding: 30px 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -54,40 +56,32 @@
 
         .container {
             width: 100%;
-            max-width: 1100px;
-            display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 30px;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
             z-index: 1;
         }
 
-        @media(max-width: 850px) {
-            .container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Ambient glowing circles */
+        /* Ambient glowing background decoration */
         .ambient-glow {
             position: absolute;
-            width: 500px;
-            height: 500px;
-            background: radial-gradient(circle, rgba(16, 185, 129, 0.06) 0%, rgba(0, 0, 0, 0) 70%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.04) 0%, rgba(0, 0, 0, 0) 70%);
             top: 5%;
-            left: 25%;
+            left: 20%;
             pointer-events: none;
             z-index: 0;
         }
 
         /* Top Header */
         .top-header {
-            width: 100%;
-            max-width: 1100px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
-            z-index: 1;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
         }
 
         .title-group h1 {
@@ -118,185 +112,405 @@
             gap: 8px;
             font-size: 12px;
             font-weight: 600;
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-            color: var(--primary);
             padding: 6px 14px;
             border-radius: 12px;
+            transition: all 0.3s;
+        }
+
+        .status-badge.status-initializing {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            color: #60a5fa;
+        }
+        .status-badge.status-initializing .pulse-dot {
+            background-color: #60a5fa;
+            animation: pulse-blue 1.2s infinite;
+        }
+
+        .status-badge.status-running {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            color: var(--primary);
+        }
+        .status-badge.status-running .pulse-dot {
+            background-color: var(--primary);
+            animation: pulse-green 1.2s infinite;
+        }
+
+        .status-badge.status-suspended {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            color: var(--warn);
+        }
+        .status-badge.status-suspended .pulse-dot {
+            background-color: var(--warn);
+            animation: pulse-yellow 1.2s infinite;
+        }
+
+        .status-badge.status-completed {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            color: var(--primary);
+        }
+        .status-badge.status-completed .pulse-dot {
+            background-color: var(--primary);
+            animation: none;
+        }
+
+        .status-badge.status-failed {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            color: var(--danger);
+        }
+        .status-badge.status-failed .pulse-dot {
+            background-color: var(--danger);
+            animation: none;
         }
 
         .pulse-dot {
             width: 8px;
             height: 8px;
-            background-color: var(--primary);
             border-radius: 50%;
-            animation: pulse 1.2s infinite;
         }
 
-        @keyframes pulse {
+        @keyframes pulse-green {
             0% { transform: scale(0.9); opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
             70% { transform: scale(1.1); opacity: 0.5; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
             100% { transform: scale(0.9); opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
+        @keyframes pulse-blue {
+            0% { transform: scale(0.9); opacity: 1; box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { transform: scale(1.1); opacity: 0.5; box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+            100% { transform: scale(0.9); opacity: 1; box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        @keyframes pulse-yellow {
+            0% { transform: scale(0.9); opacity: 1; box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+            70% { transform: scale(1.1); opacity: 0.5; box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+            100% { transform: scale(0.9); opacity: 1; box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
 
-        /* Panel Card */
-        .panel {
+        /* Onboarding workflow breadcrumbs bar */
+        .workflow-breadcrumbs {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .breadcrumb-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-dark);
+            font-weight: 500;
+        }
+
+        .breadcrumb-item.active {
+            color: var(--primary);
+        }
+
+        .breadcrumb-item.completed {
+            color: var(--text-muted);
+        }
+
+        /* Metric Cards Row */
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        @media (max-width: 900px) {
+            .metrics-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 500px) {
+            .metrics-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .metric-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 20px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            padding: 30px;
+            padding: 20px;
+            border-radius: 16px;
             display: flex;
             flex-direction: column;
+            gap: 6px;
         }
 
-        /* Left Panel - Current Step Monitor */
-        #currentStep {
-            gap: 20px;
-            height: 100%;
-        }
-
-        .step-title {
-            font-family: var(--font-outfit);
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .step-number-pill {
+        .metric-title {
             font-size: 11px;
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.25);
-            color: var(--primary);
-            padding: 3px 8px;
-            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
             font-weight: 600;
         }
 
-        .action-box {
-            background: rgba(8, 11, 17, 0.6);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            min-height: 80px;
-            display: flex;
-            align-items: center;
-            font-size: 14px;
-            line-height: 1.6;
-            color: var(--text-main);
-        }
-
-        .score-bar-container {
-            width: 100%;
-            height: 16px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            overflow: hidden;
-            position: relative;
-            margin-top: 10px;
-        }
-
-        .score-bar {
-            height: 100%;
-            width: 0%;
-            border-radius: 10px;
-            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.6s ease;
-            box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
-        }
-
-        .score-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-            color: var(--text-muted);
-            margin-top: 8px;
-        }
-
-        .score-val {
-            font-size: 18px;
-            font-family: monospace;
+        .metric-value {
+            font-family: var(--font-outfit);
+            font-size: 20px;
             font-weight: 700;
             color: var(--text-main);
         }
 
-        .status-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-            color: var(--text-muted);
-            border-top: 1px solid var(--border-color);
-            padding-top: 16px;
-            margin-top: auto;
-        }
-
-        .status-val {
-            font-weight: 600;
-            color: var(--text-main);
-        }
-
-        /* Right Panel - Event Feed */
-        .feed-header {
-            font-family: var(--font-outfit);
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .feed-count {
+        .metric-desc {
             font-size: 11px;
-            background: rgba(255, 255, 255, 0.06);
-            padding: 3px 8px;
-            border-radius: 20px;
-            color: var(--text-muted);
+            color: var(--text-dark);
         }
 
-        .feed-container {
+        /* Two Column Layout */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .layout-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
             display: flex;
             flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel-heading {
+            font-family: var(--font-outfit);
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Current Activity Card */
+        .activity-box {
+            background: rgba(8, 11, 17, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-main);
+            min-height: 80px;
+        }
+
+        /* Goal Tracking List */
+        .goal-tracking-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .anchor-num-badge {
+            font-family: var(--font-outfit);
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary);
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .risk-badge {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            text-align: center;
+        }
+        .badge-pending {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-dark);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .badge-primary {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        .badge-info {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        .badge-warn {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warn);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        .blink {
+            animation: blink-anim 1.2s infinite;
+        }
+        @keyframes blink-anim {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .goal-monitor-item {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             gap: 12px;
-            max-height: 480px;
-            overflow-y: auto;
-            padding-right: 6px;
+            transition: all 0.3s;
         }
 
-        /* Scrollbar */
-        .feed-container::-webkit-scrollbar {
-            width: 4px;
-        }
-        .feed-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .feed-container::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 4px;
+        .goal-monitor-text {
+            flex: 1;
+            line-height: 1.5;
         }
 
-        .feed-card {
+        .goal-monitor-item.completed { border-color: rgba(16, 185, 129, 0.25); background: rgba(16, 185, 129, 0.02); }
+        .goal-monitor-item.completed-corrected { border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.05); }
+        .goal-monitor-item.completed-bypassed { border-color: rgba(245, 158, 11, 0.25); background: rgba(245, 158, 11, 0.02); }
+        .goal-monitor-item.active { border-color: rgba(59, 130, 246, 0.35); background: rgba(59, 130, 246, 0.04); }
+        .goal-monitor-item.drift { border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.05); }
+        .goal-monitor-item.pending { border-color: var(--border-color); background: rgba(255, 255, 255, 0.01); }
+        .goal-monitor-item.pending .goal-monitor-icon { color: var(--text-dark); }
+        .goal-monitor-item.pending .goal-monitor-text { color: var(--text-dark); }
+
+        @keyframes blink {
+            50% { opacity: 0.4; }
+        }
+
+        /* Live Execution Pipeline Map */
+        .pipeline-map {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: rgba(8, 11, 17, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .pipeline-stage {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+            color: var(--text-dark);
+            padding: 4px 0;
+        }
+
+        .pipeline-stage.done {
+            color: var(--text-muted);
+        }
+
+        .pipeline-stage.active {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .pipeline-stage.failed {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        /* Drift Diagnostic Banner */
+        .drift-diagnostic-panel {
             background: rgba(255, 255, 255, 0.02);
             border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 16px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            transition: all 0.3s;
-            animation: cardSlide 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            gap: 10px;
         }
 
-        @keyframes cardSlide {
-            from { opacity: 0; transform: translateX(10px); }
-            to { opacity: 1; transform: translateX(0); }
+        .diagnostic-status {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .diagnostic-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* Coherence Visualization styling */
+        .coherence-box {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .score-bar-container {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .score-bar {
+            height: 100%;
+            width: 0%;
+            border-radius: 8px;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.6s ease;
+        }
+
+        /* Event feed list */
+        .feed-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 380px;
+            overflow-y: auto;
+        }
+
+        .feed-container::-webkit-scrollbar { width: 4px; }
+        .feed-container::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 4px; }
+
+        .feed-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
         .feed-card-header {
@@ -306,20 +520,18 @@
         }
 
         .feed-card-title {
-            font-size: 13px;
             font-weight: 600;
             color: var(--text-main);
         }
 
         .feed-card-tag {
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 700;
             text-transform: uppercase;
-            padding: 3px 8px;
-            border-radius: 6px;
+            padding: 2px 6px;
+            border-radius: 4px;
         }
 
-        /* Tags by status/severity */
         .tag-auto { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: var(--primary); }
         .tag-review { background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); color: var(--warn); }
         .tag-critical { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--danger); }
@@ -328,16 +540,8 @@
         .tag-approve { background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.15); color: #34d399; }
 
         .feed-card-message {
-            font-size: 12px;
             color: var(--text-muted);
-            line-height: 1.5;
-        }
-
-        .feed-card-score {
-            font-size: 11px;
-            font-family: monospace;
-            color: var(--text-dark);
-            margin-top: 4px;
+            line-height: 1.4;
         }
 
         /* INTERVENTION MODAL */
@@ -364,12 +568,6 @@
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6), 0 0 40px rgba(245, 158, 11, 0.15);
             padding: 35px;
             text-align: center;
-            animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        @keyframes modalPop {
-            from { opacity: 0; transform: scale(0.9); }
-            to { opacity: 1; transform: scale(1); }
         }
 
         .modal-box h2 {
@@ -378,10 +576,6 @@
             font-weight: 600;
             color: var(--warn);
             margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
         }
 
         .modal-box p {
@@ -430,11 +624,10 @@
         .btn-approve {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: #080b11;
-            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.15);
         }
 
         .btn-approve:hover {
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
         }
 
         .btn-reject {
@@ -482,21 +675,40 @@
             stroke-linecap: round;
             stroke-linejoin: round;
         }
-        .moon-icon {
-            display: none;
-        }
-        .sun-icon {
-            display: block;
-        }
-        :root.light-theme .moon-icon {
-            display: block;
-        }
-        :root.light-theme .sun-icon {
-            display: none;
-        }
+        .moon-icon { display: none; }
+        .sun-icon { display: block; }
+        :root.light-theme .moon-icon { display: block; }
+        :root.light-theme .sun-icon { display: none; }
 
-        /* Light theme overrides */
-        :root.light-theme {
+        /* Live Coherence Gauge styles */
+        .score-big-val {
+            font-family: var(--font-outfit);
+            font-size: 38px;
+            font-weight: 700;
+            color: var(--text-main);
+            line-height: 1;
+        }
+        .coherence-status-badge {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+        .threshold-line-marker {
+            position: absolute;
+            top: -4px;
+            height: 16px;
+            width: 2px;
+            background: #ffffff;
+            box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+            z-index: 2;
+        }
+        :root.light-theme .threshold-line-marker {
+            background: #111827;
+            box-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+        }
             --bg-color: #f3f4f6;
             --card-bg: rgba(255, 255, 255, 0.85);
             --border-color: rgba(0, 0, 0, 0.08);
@@ -527,66 +739,27 @@
             color: var(--text-main);
         }
 
-        :root.light-theme .card,
-        :root.light-theme .logs-container,
-        :root.light-theme .status-badge,
-        :root.light-theme .session-badge,
-        :root.light-theme .control-panel {
-            background: rgba(255, 255, 255, 0.85) !important;
-            border-color: rgba(0, 0, 0, 0.08) !important;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
-        }
-
-        :root.light-theme .log-entry {
-            background: rgba(0, 0, 0, 0.02) !important;
-            border-left: 3px solid rgba(0, 0, 0, 0.1) !important;
-            color: #1f2937 !important;
-        }
-
-        :root.light-theme .log-entry.info { border-left-color: #3b82f6 !important; }
-        :root.light-theme .log-entry.warn { border-left-color: #f59e0b !important; }
-        :root.light-theme .log-entry.error { border-left-color: #ef4444 !important; }
-        :root.light-theme .log-entry.success { border-left-color: #10b981 !important; }
-
-        :root.light-theme .metric-card {
-            background: rgba(0, 0, 0, 0.02) !important;
-            border: 1px solid rgba(0, 0, 0, 0.06) !important;
-        }
-
-        :root.light-theme .goal-item {
-            background: rgba(255, 255, 255, 0.9) !important;
-            border-color: rgba(0, 0, 0, 0.08) !important;
-        }
-
-        :root.light-theme .btn-reject {
-            background: rgba(239, 68, 68, 0.08) !important;
-            border-color: rgba(239, 68, 68, 0.15) !important;
-            color: #ef4444 !important;
-        }
-
-        :root.light-theme .btn-reject:hover {
-            background: rgba(239, 68, 68, 0.12) !important;
-        }
-
-        :root.light-theme .modal-content {
-            background: #ffffff !important;
-            border-color: rgba(0, 0, 0, 0.1) !important;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
-            color: #1f2937 !important;
-        }
-
-        :root.light-theme .modal-content textarea {
-            background: #f9fafb !important;
-            color: #1f2937 !important;
-            border-color: rgba(0, 0, 0, 0.1) !important;
+        /* Screen reader utility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
     </style>
 </head>
 <body>
 
+    <!-- Accessible Live Announcement Region -->
+    <div id="srLiveAnnouncer" class="sr-only" aria-live="polite" role="status"></div>
+
     <button id="themeToggle" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Theme">
-        <!-- Sun icon (for dark mode to switch to light) -->
-        <svg class="sun-icon" viewBox="0 0 24 24">
+        <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="12" r="5"></circle>
             <line x1="12" y1="1" x2="12" y2="3"></line>
             <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -597,75 +770,200 @@
             <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
         </svg>
-        <!-- Moon icon (for light mode to switch to dark) -->
-        <svg class="moon-icon" viewBox="0 0 24 24">
+        <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>
     </button>
 
     <div class="ambient-glow"></div>
 
-    <!-- Top Header -->
-    <div class="top-header">
-        <div class="title-group">
-            <h1>DriftWatch Live Monitor</h1>
-            <span class="session-badge" id="sessionBadge">Session: —</span>
-        </div>
-        <div class="status-badge" id="statusBadge">
-            <span class="pulse-dot"></span>
-            <span id="statusText">Agent Executing</span>
-        </div>
-    </div>
-
-    <!-- Main Container -->
     <div class="container">
-        <!-- Left Panel: Monitor -->
-        <div class="panel" id="currentStep">
-            <div class="step-title">
-                <span>Current Step Progress</span>
-                <span class="step-number-pill" id="stepNum">Step —</span>
+        <!-- Top Header -->
+        <header class="top-header" role="banner">
+            <div class="title-group">
+                <h1>DriftWatch Live Monitor</h1>
+                <span class="session-badge" id="sessionBadge" aria-label="Workflow Session ID">Session: —</span>
             </div>
-            
-            <div class="action-box" id="stepAction">
-                Waiting for agent initialization...
+            <div class="status-badge" id="statusBadge" aria-live="polite">
+                <span class="pulse-dot"></span>
+                <span id="statusText">Agent Initializing</span>
             </div>
-            
-            <div>
-                <div class="score-meta">
-                    <span>Goal Coherence Score</span>
-                    <span class="score-val" id="scoreVal">—</span>
-                </div>
-                <div class="score-bar-container">
-                    <div class="score-bar" id="scoreBar"></div>
-                </div>
+        </header>
+
+        <!-- Compact Workflow Breadcrumbs Journey -->
+        <nav class="workflow-breadcrumbs" aria-label="Workflow progress map">
+            <div class="breadcrumb-item completed">✓ Define Task</div>
+            <div class="breadcrumb-item completed">✓ Decompose Goals</div>
+            <div class="breadcrumb-item completed">✓ Configure Risk</div>
+            <div class="breadcrumb-item active" id="crumbExecuting" aria-current="step">● Agent Executing</div>
+            <div class="breadcrumb-item" id="crumbMonitoring">○ Monitor Drift</div>
+            <div class="breadcrumb-item" id="crumbReview">○ Review Result</div>
+        </nav>
+
+        <!-- Summary Metrics Row -->
+        <div class="metrics-row" role="region" aria-label="Key Execution Metrics">
+            <div class="metric-card">
+                <span class="metric-title">Agent Status</span>
+                <span class="metric-value" id="topStatus">Initializing</span>
+                <span class="metric-desc">DriftWatch environment startup</span>
             </div>
-            
-            <div class="status-row">
-                <span>System Interceptor</span>
-                <span class="status-val" id="stepStatus">STANDBY</span>
+            <div class="metric-card">
+                <span class="metric-title">Current Stage</span>
+                <span class="metric-value" id="topStage">Step — / 5</span>
+                <span class="metric-desc">Goal progress counter</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-title">Goal Coherence</span>
+                <span class="metric-value" id="topCoherence">—</span>
+                <span class="metric-desc">Real-time vector alignment</span>
+            </div>
+            <div class="metric-card">
+                <span class="metric-title">Interceptor Shield</span>
+                <span class="metric-value" id="topInterceptor">STANDBY</span>
+                <span class="metric-desc">Active governance status</span>
             </div>
         </div>
 
-        <!-- Right Panel: Event Feed -->
-        <div class="panel">
-            <div class="feed-header">
-                <span>Governance Log</span>
-                <span class="feed-count" id="feedCount">0 events</span>
+        <!-- Main Layout Grid -->
+        <main class="layout-grid" role="main">
+            <!-- Left Side: Interactive Progress details -->
+            <div style="display:flex; flex-direction:column; gap:24px;">
+                <!-- Current Activity Panel -->
+                <section class="panel" aria-labelledby="activityHeading">
+                    <h2 id="activityHeading" class="panel-heading">Current Activity</h2>
+                    <div class="activity-box" id="stepAction">
+                        <div id="initializationPanel" style="display: flex; flex-direction: column; gap: 12px;">
+                            <h3 style="font-family: var(--font-outfit); font-size: 15px; color: var(--primary); font-weight:600;">DriftWatch is getting ready</h3>
+                            <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 4px;">Preparing your goals, risk policy, and monitoring environment.</p>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; border-top: 1px solid var(--border-color); padding-top: 10px;">
+                                <div><strong style="color:var(--text-main);">Goals configured:</strong> <span id="initGoalsCount">—</span></div>
+                                <div><strong style="color:var(--text-main);">Risk threshold:</strong> <span id="initThreshold">—</span></div>
+                                <div><strong style="color:var(--text-main);">Monitoring Status:</strong> <span id="initStatus" style="color: var(--primary); font-weight:600;">Ready</span></div>
+                                <div><strong style="color:var(--text-main);">Session ID:</strong> <span id="initSession">—</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Decomposed Goal Tracker -->
+                <section class="panel" aria-labelledby="goalTrackerHeading">
+                    <h2 id="goalTrackerHeading" class="panel-heading">Goal-Level Monitoring</h2>
+                    <div class="goal-tracking-list" id="goalTrackingList">
+                        <div style="color:var(--text-dark); font-size:12px;">Waiting for decomposed goals list...</div>
+                    </div>
+                </section>
+
+                <!-- Execution Pipeline Stage Diagram -->
+                <section class="panel" aria-labelledby="pipelineHeading">
+                    <h2 id="pipelineHeading" class="panel-heading">Execution Pipeline</h2>
+                    <div class="pipeline-map" id="pipelineMap">
+                        <div class="pipeline-stage" id="stage-1">○ Stage 1: Task Defined</div>
+                        <div class="pipeline-stage" id="stage-2">○ Stage 2: Goals Decomposed</div>
+                        <div class="pipeline-stage" id="stage-3">○ Stage 3: Risk Policy Saved</div>
+                        <div class="pipeline-stage" id="stage-4">○ Stage 4: Agent Initializing</div>
+                        <div class="pipeline-stage" id="stage-5">○ Stage 5: Agent Running</div>
+                        <div class="pipeline-stage" id="stage-6">○ Stage 6: Drift Monitoring</div>
+                        <div class="pipeline-stage" id="stage-7">○ Stage 7: Governance Intervention</div>
+                        <div class="pipeline-stage" id="stage-8">○ Stage 8: Execution Completed</div>
+                    </div>
+                </section>
             </div>
-            <div class="feed-container" id="eventFeed"></div>
-        </div>
+
+            <!-- Right Side: Drift status & Logs -->
+            <div style="display:flex; flex-direction:column; gap:24px;">
+                <!-- Drift Detection Gate -->
+                <section class="panel" aria-labelledby="driftGateHeading">
+                    <h2 id="driftGateHeading" class="panel-heading">Drift Diagnostics</h2>
+                    
+                    <div class="drift-diagnostic-panel" id="diagnosticBox">
+                        <div class="diagnostic-status" id="diagnosticStatus">
+                            <span>🛡 Standby</span>
+                        </div>
+                        <div class="diagnostic-desc" id="diagnosticDesc">
+                            No agent activity reported yet. Safety limits are currently on standby.
+                        </div>
+                    </div>
+
+                    <div class="coherence-box">
+                        <!-- Live Coherence Meter visual header -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+                            <span style="font-size: 11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--text-muted);">Real-Time Coherence</span>
+                            <span class="coherence-status-badge badge-pending" id="coherenceStatusBadge">STANDBY</span>
+                        </div>
+                        <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:14px;">
+                            <span class="score-big-val" id="scoreValBig">—</span>
+                            <span style="font-size: 12px; color:var(--text-dark);">/ 1.000</span>
+                        </div>
+                        <div class="score-bar-container">
+                            <div class="score-bar" id="scoreBar"></div>
+                            <!-- Threshold indicator line marker -->
+                            <div class="threshold-line-marker" id="thresholdLineMarker" style="left: 75%;"></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted); margin-top:8px;">
+                            <span>Threshold: <strong id="thresholdValLabel">—</strong></span>
+                            <span>Target: 1.000</span>
+                        </div>
+                        
+                        <!-- Extra small labels inside the diagnostic container -->
+                        <div style="display:none;" id="thresholdVal">—</div>
+                        <div style="display:none;" id="scoreVal">—</div>
+                    </div>
+                </section>
+
+                <!-- Governance Log -->
+                <section class="panel" aria-labelledby="govLogHeading">
+                    <h2 id="govLogHeading" class="panel-heading">
+                        <span>Governance Log</span>
+                        <span class="feed-count" id="feedCount">0 events</span>
+                    </h2>
+                    <div class="feed-container" id="eventFeed" role="log" aria-live="polite">
+                        <div style="text-align:center; color:var(--text-dark); padding:30px; font-size:12px;" id="feedPlaceholder">
+                            No governance events yet.<br>
+                            <span style="font-size:11px; color:var(--text-muted);">Safety checks will appear here as the agent progresses.</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- System Health Monitor -->
+                <section class="panel" aria-labelledby="systemHealthHeading">
+                    <h2 id="systemHealthHeading" class="panel-heading">System Health</h2>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 6px 0;">
+                        <div style="display:flex; align-items:center; gap:8px; font-size:12.5px;">
+                            <span class="pulse-dot" style="background-color: var(--primary); animation: pulse-green 1.2s infinite; width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+                            <span style="color:var(--text-muted);">Agent:</span>
+                            <strong style="color:var(--text-main);" id="healthAgent">Healthy</strong>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px; font-size:12.5px;">
+                            <span class="pulse-dot" id="streamHealthDot" style="background-color: var(--text-dark); width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+                            <span style="color:var(--text-muted);">Event Stream:</span>
+                            <strong style="color:var(--text-main);" id="healthStream">Connecting...</strong>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px; font-size:12.5px;">
+                            <span class="pulse-dot" style="background-color: var(--primary); width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+                            <span style="color:var(--text-muted);">Session Sync:</span>
+                            <strong style="color:var(--text-main);">Synchronized</strong>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px; font-size:12.5px;">
+                            <span class="pulse-dot" style="background-color: var(--primary); width:8px; height:8px; border-radius:50%; display:inline-block;"></span>
+                            <span style="color:var(--text-muted);">Governance:</span>
+                            <strong style="color:var(--text-main);" id="healthGov">Active</strong>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
     </div>
 
     <!-- Intervention Modal -->
-    <div class="modal-overlay" id="modal">
+    <div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalHeading" aria-describedby="modalMessage">
         <div class="modal-box">
-            <h2>⚠ Agent Correction Required</h2>
+            <h2 id="modalHeading">⚠ Agent Correction Required</h2>
             <p>DriftWatch intercepted critical goal drift. Governance policy requires human approval to perform corrective action.</p>
             <div id="modalMessage"></div>
             <div class="countdown-timer" id="modalCountdown">Auto-approving in 120s...</div>
             <div class="modal-buttons">
-                <button class="btn-modal btn-approve" onclick="sendDecision('approve')">✓ Approve Correction</button>
-                <button class="btn-modal btn-reject" onclick="sendDecision('reject')">✗ Continue Without Correction</button>
+                <button class="btn-modal btn-approve" id="btnApprove" onclick="sendDecision('approve')">✓ Approve Correction</button>
+                <button class="btn-modal btn-reject" id="btnReject" onclick="sendDecision('reject')">✗ Continue Without Correction</button>
             </div>
         </div>
     </div>
@@ -674,80 +972,570 @@
         const sessionId = window.location.pathname.split("/").pop();
         document.getElementById("sessionBadge").textContent = `Session: ${sessionId}`;
 
-        const es = new EventSource(`/api/stream/${sessionId}`);
+        let es = null;
         let countdownInterval = null;
         let eventCount = 0;
+        let goalAnchors = [];
+        let configSensitivity = 0.75;
+        let originalTask = "";
+        let goalStates = {}; // step_number -> state
+        let totalSteps = 5;  // Default fallback, updated dynamically
+        let processedEvents = new Set(); // Prevent event duplication
+        let executionState = "INITIALIZING";
 
-        es.addEventListener("step_update", e => {
-            const d = JSON.parse(e.data);
+        // Function to announce critical events to assistive technology
+        function announceToScreenReader(message) {
+            const announcer = document.getElementById("srLiveAnnouncer");
+            if (announcer) {
+                announcer.textContent = "";
+                setTimeout(() => { announcer.textContent = message; }, 50);
+            }
+        }
+
+        // Set status badge classes and texts dynamically
+        function setStatusBadge(state, text) {
+            const badge = document.getElementById("statusBadge");
+            const badgeText = document.getElementById("statusText");
+            if (!badge || !badgeText) return;
+            badge.className = "status-badge";
+            badge.classList.add(`status-${state}`);
+            badgeText.textContent = text;
+        }
+
+        // Update the top workflow journey indicators
+        function updateBreadcrumbs(activeStep) {
+            const executing = document.getElementById("crumbExecuting");
+            const monitoring = document.getElementById("crumbMonitoring");
+            const review = document.getElementById("crumbReview");
+            if (!executing || !monitoring || !review) return;
+
+            executing.className = "breadcrumb-item";
+            monitoring.className = "breadcrumb-item";
+            review.className = "breadcrumb-item";
             
-            // Update left panel UI
-            document.getElementById("stepNum").textContent = `Step ${d.step_number} / 5`;
-            document.getElementById("stepAction").textContent = d.action;
-            document.getElementById("scoreVal").textContent = d.drift_score.toFixed(3);
-            
-            const bar = document.getElementById("scoreBar");
-            bar.style.width = (d.drift_score * 100) + "%";
-            
-            if (d.drift_score >= 0.75) {
-                bar.style.backgroundColor = "var(--primary)";
-                bar.style.boxShadow = "0 0 10px var(--primary-glow)";
-                document.getElementById("stepStatus").innerHTML = `<span style="color:var(--primary)">ALIGNED</span>`;
-            } else if (d.drift_score >= 0.60) {
-                bar.style.backgroundColor = "var(--warn)";
-                bar.style.boxShadow = "0 0 10px var(--warn-glow)";
-                document.getElementById("stepStatus").innerHTML = `<span style="color:var(--warn)">SLIGHT DRIFT</span>`;
-            } else {
-                bar.style.backgroundColor = "var(--danger)";
-                bar.style.boxShadow = "0 0 10px var(--danger-glow)";
-                document.getElementById("stepStatus").innerHTML = `<span style="color:var(--danger)">SEVERE DRIFT</span>`;
+            executing.removeAttribute("aria-current");
+            monitoring.removeAttribute("aria-current");
+            review.removeAttribute("aria-current");
+
+            if (activeStep === "executing") {
+                executing.classList.add("active");
+                executing.setAttribute("aria-current", "step");
+                executing.innerHTML = "● Agent Executing";
+                monitoring.innerHTML = "○ Monitor Drift";
+                review.innerHTML = "○ Review Result";
+            } else if (activeStep === "monitoring") {
+                executing.classList.add("completed");
+                executing.innerHTML = "✓ Agent Executing";
+                monitoring.classList.add("active");
+                monitoring.setAttribute("aria-current", "step");
+                monitoring.innerHTML = "● Monitor Drift";
+                review.innerHTML = "○ Review Result";
+            } else if (activeStep === "completed") {
+                executing.classList.add("completed");
+                executing.innerHTML = "✓ Agent Executing";
+                monitoring.classList.add("completed");
+                monitoring.innerHTML = "✓ Monitor Drift";
+                review.classList.add("active");
+                review.setAttribute("aria-current", "step");
+                review.innerHTML = "● Review Result";
+            }
+        }
+
+        function restoreUIFromSessionData(data) {
+            if (!data) return;
+
+            originalTask = data.task || "";
+            goalAnchors = data.goal_anchors || [];
+            configSensitivity = data.sensitivity || 0.75;
+            totalSteps = data.total_steps || 5;
+
+            // Reconstruct goalStates from steps and drift events
+            goalStates = {};
+            const steps = data.steps || [];
+            const driftEvents = data.drift_events || [];
+
+            steps.forEach(s => {
+                const sn = s.step_number;
+                const ev = driftEvents.find(e => e.step_number === sn);
+                if (ev) {
+                    if (ev.status === "user_rejected" || ev.status === "user_rejected_no_correction") {
+                        goalStates[sn] = "bypassed";
+                    } else if (ev.status === "user_approved" || ev.status === "auto_applied") {
+                        goalStates[sn] = "corrected";
+                    } else {
+                        goalStates[sn] = "drift";
+                    }
+                } else {
+                    goalStates[sn] = "completed";
+                }
+            });
+
+            if (data.phase === "executing") {
+                const current = steps.length + 1;
+                if (current <= totalSteps) {
+                    goalStates[current] = "processing";
+                }
             }
 
-            addEventCard(d.step_number, "Step Completed", `Coherence Score: ${d.drift_score.toFixed(3)}`, "ok", `Drift: ${d.drift_type}`);
-        });
+            renderGoalsTracker();
 
-        es.addEventListener("correction_applied", e => {
-            const d = JSON.parse(e.data);
-            addEventCard(d.step, "Auto Correction Applied", d.message, d.severity.toLowerCase(), `Tier ${d.tier} | ${d.drift_type}`);
-        });
+            // Render stats inside initialization panel
+            const initGoalsCount = document.getElementById("initGoalsCount");
+            if (initGoalsCount) initGoalsCount.textContent = goalAnchors.length;
+            const initThreshold = document.getElementById("initThreshold");
+            if (initThreshold) initThreshold.textContent = configSensitivity.toFixed(2);
+            const initSession = document.getElementById("initSession");
+            if (initSession) initSession.textContent = sessionId;
 
-        es.addEventListener("correction_pending", e => {
-            const d = JSON.parse(e.data);
-            
-            document.getElementById("modalMessage").textContent = d.message;
-            document.getElementById("modal").style.display = "flex";
-            
-            let secs = 120;
-            document.getElementById("modalCountdown").textContent = `Auto-approving in ${secs}s...`;
-            
-            clearInterval(countdownInterval);
-            countdownInterval = setInterval(() => {
-                secs--;
-                document.getElementById("modalCountdown").textContent = `Auto-approving in ${secs}s...`;
-                if (secs <= 0) {
-                    clearInterval(countdownInterval);
-                    sendDecision("approve");
+            // Reconstruct event feed card by card to prevent duplicate rendering
+            const feed = document.getElementById("eventFeed");
+            if (feed) feed.innerHTML = "";
+            processedEvents.clear();
+            eventCount = 0;
+
+            steps.forEach(s => {
+                const sn = s.step_number;
+                addEventCard(sn, "Step Evaluated", `Coherence Score: ${s.drift_score.toFixed(3)} | Action: ${s.action.substring(0, 75)}...`, "ok", `Drift: ${s.drift_type || "None"}`);
+
+                const ev = driftEvents.find(e => e.step_number === sn);
+                if (ev) {
+                    const sev = ev.status === "user_rejected" || ev.status === "user_rejected_no_correction" ? "rejected" : (ev.status === "user_approved" || ev.status === "auto_applied" ? "auto" : "pending");
+                    const cardTitle = ev.status === "user_rejected" || ev.status === "user_rejected_no_correction" ? "Correction Bypassed" : "Correction Applied";
+                    addEventCard(sn, cardTitle, ev.correction_applied, sev, `Tier ${ev.tier} | Drift: ${ev.drift_type}`);
                 }
-            }, 1000);
-        });
+            });
 
-        es.addEventListener("correction_rejected", e => {
-            const d = JSON.parse(e.data);
-            addEventCard(d.step, "Correction Blocked", d.message, "rejected", `Tier ${d.tier} | ${d.drift_type}`);
-        });
+            if (data.phase === "complete" || data.phase === "reviewing") {
+                executionState = data.error_message ? "FAILED" : "COMPLETED";
+                if (executionState === "COMPLETED") {
+                    setStatusBadge("completed", "Execution Completed");
+                    document.getElementById("topStatus").textContent = "Completed";
+                    document.getElementById("topStage").textContent = "Execution Complete";
+                    document.getElementById("stepAction").textContent = "Execution completed successfully.";
+                    updatePipeline(8);
+                    updateBreadcrumbs("completed");
+                } else {
+                    setStatusBadge("failed", "Failed");
+                    document.getElementById("topStatus").textContent = "Error";
+                    document.getElementById("topStage").textContent = "Execution Failed";
+                    document.getElementById("stepAction").textContent = `Execution failed: ${data.error_message}`;
+                    updatePipeline(steps.length + 1, true);
+                    updateBreadcrumbs("completed");
+                }
+                
+                const initPanel = document.getElementById("initializationPanel");
+                if (initPanel) initPanel.remove();
 
-        es.addEventListener("execution_complete", e => {
-            es.close();
-            // Redirect to review page after 1.5s so user can read complete logs
-            setTimeout(() => {
-                window.location.href = `/review/${sessionId}`;
-            }, 1500);
-        });
+                if (es) {
+                    es.close();
+                }
+                
+                // Redirect immediately if already complete/failed
+                setTimeout(() => {
+                    window.location.href = `/review/${sessionId}`;
+                }, 1000);
+            } else if (data.phase === "executing" && steps.length > 0) {
+                executionState = "RUNNING";
+                const lastStep = steps[steps.length - 1];
+                setStatusBadge("running", "Agent Executing");
+                document.getElementById("topStatus").textContent = "Running";
+                document.getElementById("topStage").textContent = `Step ${steps.length} of ${totalSteps}`;
+                document.getElementById("stepAction").textContent = lastStep.action;
+                updateBreadcrumbs("monitoring");
+                
+                const initPanel = document.getElementById("initializationPanel");
+                if (initPanel) initPanel.remove();
 
-        es.addEventListener("execution_error", e => {
-            const d = JSON.parse(e.data);
-            alert("Execution Error: " + d.error);
-        });
+                const score = lastStep.drift_score;
+                document.getElementById("scoreValBig").textContent = score.toFixed(3);
+                document.getElementById("topCoherence").textContent = (score * 100).toFixed(1) + "%";
+                const bar = document.getElementById("scoreBar");
+                if (bar) {
+                    bar.style.width = (score * 100) + "%";
+                    if (score >= configSensitivity) {
+                        bar.style.backgroundColor = "var(--primary)";
+                        document.getElementById("topInterceptor").textContent = "MONITORING";
+                        updatePipeline(6);
+                    } else {
+                        updatePipeline(7);
+                        if (score >= 0.60) {
+                            bar.style.backgroundColor = "var(--warn)";
+                            document.getElementById("topInterceptor").textContent = "ACTIVE";
+                        } else {
+                            bar.style.backgroundColor = "var(--danger)";
+                            document.getElementById("topInterceptor").textContent = "INTERVENED";
+                        }
+                    }
+                }
+            } else {
+                executionState = "INITIALIZING";
+                updatePipeline(4);
+                updateBreadcrumbs("executing");
+            }
+        }
+
+        // Initialize dashboard details from session file
+        async function fetchInitialSessionData() {
+            try {
+                const res = await fetch(`/api/export/${sessionId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    const sensitivity = data.sensitivity || 0.75;
+                    document.getElementById("thresholdValLabel").textContent = sensitivity.toFixed(2);
+                    const marker = document.getElementById("thresholdLineMarker");
+                    if (marker) {
+                        marker.style.left = (sensitivity * 100) + "%";
+                    }
+
+                    restoreUIFromSessionData(data);
+                }
+            } catch (err) {
+                console.error("Failed to load initial session info: ", err);
+            }
+        }
+
+        function renderGoalsTracker() {
+            const list = document.getElementById("goalTrackingList");
+            if (!list) return;
+
+            if (!goalAnchors || goalAnchors.length === 0) {
+                list.innerHTML = `<div style="color:var(--text-dark); font-size:12px;">No goals defined for this session.</div>`;
+                return;
+            }
+            list.innerHTML = "";
+
+            let processedGoals = [];
+            // If backend returned single item containing multiple numbered goals, parse them
+            if (goalAnchors.length === 1 && (goalAnchors[0].includes("\n") || /\b\d\.\s/.test(goalAnchors[0]))) {
+                const text = goalAnchors[0];
+                const lines = text.split(/\n|(?=\b\d\.\s)/);
+                lines.forEach(l => {
+                    const clean = l.replace(/^\s*\d+[\.\-\)]\s*/, "").trim();
+                    if (clean.length > 5) {
+                        processedGoals.push(clean);
+                    }
+                });
+            } else {
+                processedGoals = goalAnchors;
+            }
+
+            processedGoals.forEach((goal, idx) => {
+                const stepNum = idx + 1;
+                const stepNumStr = String(stepNum).padStart(2, '0');
+                const state = goalStates[stepNum] || "pending";
+                
+                let badgeClass = "badge-pending";
+                let badgeText = "Pending";
+                let iconClass = "pending";
+                
+                if (state === "completed") {
+                    badgeClass = "badge-primary";
+                    badgeText = "Completed";
+                    iconClass = "completed";
+                } else if (state === "corrected") {
+                    badgeClass = "badge-info";
+                    badgeText = "Corrected";
+                    iconClass = "completed-corrected";
+                } else if (state === "bypassed") {
+                    badgeClass = "badge-warn";
+                    badgeText = "Bypassed";
+                    iconClass = "completed-bypassed";
+                } else if (state === "processing") {
+                    badgeClass = "badge-info blink";
+                    badgeText = "Processing";
+                    iconClass = "active";
+                } else if (state === "drift") {
+                    badgeClass = "badge-danger blink";
+                    badgeText = "Drift Detected";
+                    iconClass = "drift";
+                }
+
+                const item = document.createElement("div");
+                item.className = `goal-monitor-item ${iconClass}`;
+                item.style.display = "flex";
+                item.style.alignItems = "center";
+                item.style.gap = "14px";
+                item.innerHTML = `
+                    <div class="anchor-num-badge">${stepNumStr}</div>
+                    <div style="flex:1; display:flex; flex-direction:column; gap:4px; text-align:left;">
+                        <span class="goal-monitor-text" style="font-size:13px; font-weight:500;">${goal}</span>
+                    </div>
+                    <span class="risk-badge ${badgeClass}">${badgeText}</span>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function updatePipeline(activeStage, isFailed=false) {
+            for (let i = 1; i <= 8; i++) {
+                const el = document.getElementById(`stage-${i}`);
+                if (el) {
+                    el.classList.remove("done", "active", "failed");
+                    let baseText = el.textContent.replace(/^[○●✓✕]\s*/, "");
+                    const stageNames = {
+                        1: "Stage 1: Task Defined",
+                        2: "Stage 2: Goals Decomposed",
+                        3: "Stage 3: Risk Policy Saved",
+                        4: "Stage 4: Agent Initializing",
+                        5: "Stage 5: Agent Running",
+                        6: "Stage 6: Drift Monitoring",
+                        7: "Stage 7: Governance Intervention",
+                        8: "Stage 8: Execution Completed"
+                    };
+                    baseText = stageNames[i] ? stageNames[i].replace(/Stage \d:\s*/, "") : baseText;
+
+                    if (isFailed && i === activeStage) {
+                        el.classList.add("failed");
+                        el.textContent = `✕ Stage ${i}: ${baseText.replace("Running", "Execution Failed")}`;
+                    } else if (i < activeStage) {
+                        el.classList.add("done");
+                        el.textContent = `✓ Stage ${i}: ${baseText}`;
+                    } else if (i === activeStage) {
+                        el.classList.add("active");
+                        el.textContent = `● Stage ${i}: ${baseText}`;
+                    } else {
+                        el.textContent = `○ Stage ${i}: ${baseText}`;
+                    }
+                }
+            }
+        }
+
+        function startEventStream() {
+            es = new EventSource(`/api/stream/${sessionId}`);
+
+            es.onopen = () => {
+                const dot = document.getElementById("streamHealthDot");
+                if (dot) {
+                    dot.style.backgroundColor = "var(--primary)";
+                    dot.style.animation = "pulse-green 1.2s infinite";
+                }
+                document.getElementById("healthStream").textContent = "Connected";
+            };
+
+            es.onerror = () => {
+                const dot = document.getElementById("streamHealthDot");
+                if (dot) {
+                    dot.style.backgroundColor = "var(--danger)";
+                    dot.style.animation = "none";
+                }
+                document.getElementById("healthStream").textContent = "Disconnected";
+                document.getElementById("healthAgent").textContent = "Standby";
+            };
+
+            es.addEventListener("agent_start", e => {
+                if (executionState === "COMPLETED" || executionState === "FAILED") return;
+                const d = JSON.parse(e.data);
+                if (d.session_id && d.session_id !== sessionId) return;
+
+                if (d.total_steps) {
+                    totalSteps = d.total_steps;
+                }
+                if (d.goals && d.goals.length > 0) {
+                    goalAnchors = d.goals;
+                    renderGoalsTracker();
+                }
+                
+                const initGoalsCount = document.getElementById("initGoalsCount");
+                if (initGoalsCount) {
+                    initGoalsCount.textContent = goalAnchors.length;
+                }
+                announceToScreenReader("Agent initialization complete. Execution started.");
+            });
+
+            es.addEventListener("step_update", e => {
+                if (executionState === "COMPLETED" || executionState === "FAILED") return;
+                const d = JSON.parse(e.data);
+                if (d.session_id && d.session_id !== sessionId) return;
+                
+                executionState = "RUNNING";
+                setStatusBadge("running", "Agent Executing");
+                document.getElementById("topStatus").textContent = "Running";
+                updateBreadcrumbs("monitoring");
+                
+                const initPanel = document.getElementById("initializationPanel");
+                if (initPanel) {
+                    initPanel.remove();
+                }
+
+                document.getElementById("topStage").textContent = `Step ${d.step_number} of ${totalSteps}`;
+                document.getElementById("stepAction").textContent = d.action;
+                
+                for (let i = 1; i < d.step_number; i++) {
+                    if (!goalStates[i] || goalStates[i] === "pending" || goalStates[i] === "processing") {
+                        goalStates[i] = "completed";
+                    }
+                }
+                goalStates[d.step_number] = "processing";
+                renderGoalsTracker();
+                
+                const score = d.drift_score;
+                document.getElementById("scoreValBig").textContent = score.toFixed(3);
+                document.getElementById("topCoherence").textContent = (score * 100).toFixed(1) + "%";
+                
+                const bar = document.getElementById("scoreBar");
+                bar.style.width = (score * 100) + "%";
+
+                const diagStatus = document.getElementById("diagnosticStatus");
+                const diagDesc = document.getElementById("diagnosticDesc");
+                
+                const statusBadge = document.getElementById("coherenceStatusBadge");
+                statusBadge.className = "coherence-status-badge";
+
+                if (score >= configSensitivity) {
+                    bar.style.backgroundColor = "var(--primary)";
+                    document.getElementById("topInterceptor").textContent = "MONITORING";
+                    statusBadge.classList.add("badge-primary");
+                    statusBadge.textContent = "ALIGNED";
+                    diagStatus.innerHTML = `<span style="color:var(--primary)">✓ No Drift Detected</span>`;
+                    diagDesc.textContent = `The agent's output alignment (${score.toFixed(3)}) is securely above the configured threshold policy (${configSensitivity.toFixed(2)}).`;
+                    updatePipeline(6); 
+                } else {
+                    updatePipeline(7); 
+                    if (score >= 0.60) {
+                        bar.style.backgroundColor = "var(--warn)";
+                        document.getElementById("topInterceptor").textContent = "ACTIVE";
+                        statusBadge.classList.add("badge-warn");
+                        statusBadge.textContent = "WATCH";
+                        diagStatus.innerHTML = `<span style="color:var(--warn)">⚠ Moderate Deviation</span>`;
+                        diagDesc.textContent = `Agent output exhibits moderate alignment divergence (${score.toFixed(3)}). Interception policies triggered.`;
+                    } else {
+                        bar.style.backgroundColor = "var(--danger)";
+                        document.getElementById("topInterceptor").textContent = "INTERVENED";
+                        statusBadge.classList.add("badge-danger");
+                        statusBadge.textContent = "DRIFT DETECTED";
+                        diagStatus.innerHTML = `<span style="color:var(--danger)">✕ Critical Drift Detected</span>`;
+                        diagDesc.textContent = `Critical coherence drop detected (${score.toFixed(3)}). High risk of goal drift. Intervention requested.`;
+                    }
+                }
+
+                announceToScreenReader(`Execution step ${d.step_number} of ${totalSteps} is now active.`);
+                addEventCard(d.step_number, "Step Evaluated", `Coherence Score: ${d.drift_score.toFixed(3)} | Action: ${d.action.substring(0, 75)}...`, "ok", `Drift: ${d.drift_type || "None"}`);
+            });
+
+            es.addEventListener("correction_applied", e => {
+                if (executionState === "COMPLETED" || executionState === "FAILED") return;
+                const d = JSON.parse(e.data);
+                if (d.session_id && d.session_id !== sessionId) return;
+
+                setStatusBadge("running", "Agent Executing");
+                document.getElementById("topStatus").textContent = "Running";
+                document.getElementById("topInterceptor").textContent = "ACTIVE";
+                
+                goalStates[d.step] = "corrected";
+                renderGoalsTracker();
+
+                addEventCard(d.step, "Correction Applied", d.message, d.severity ? d.severity.toLowerCase() : "auto", `Tier ${d.tier} | Drift: ${d.drift_type}`);
+                announceToScreenReader("Correction applied. Agent returned to the configured goal.");
+            });
+
+            es.addEventListener("correction_pending", e => {
+                if (executionState === "COMPLETED" || executionState === "FAILED") return;
+                const d = JSON.parse(e.data);
+                if (d.session_id && d.session_id !== sessionId) return;
+
+                setStatusBadge("suspended", "Intervention Required");
+                document.getElementById("topStatus").textContent = "Suspended";
+                document.getElementById("topInterceptor").textContent = "INTERVENED";
+                
+                goalStates[d.step] = "drift";
+                renderGoalsTracker();
+
+                document.getElementById("modalMessage").textContent = d.message;
+                
+                const modal = document.getElementById("modal");
+                modal.style.display = "flex";
+                document.getElementById("btnApprove").focus();
+                
+                let secs = 120;
+                document.getElementById("modalCountdown").textContent = `Auto-approving in ${secs}s...`;
+                
+                clearInterval(countdownInterval);
+                countdownInterval = setInterval(() => {
+                    secs--;
+                    document.getElementById("modalCountdown").textContent = `Auto-approving in ${secs}s...`;
+                    if (secs <= 0) {
+                        clearInterval(countdownInterval);
+                        sendDecision("approve");
+                    }
+                }, 1000);
+                
+                announceToScreenReader("Critical drift detected. Governance intervention requested.");
+            });
+
+            es.addEventListener("correction_rejected", e => {
+                if (executionState === "COMPLETED" || executionState === "FAILED") return;
+                const d = JSON.parse(e.data);
+                if (d.session_id && d.session_id !== sessionId) return;
+
+                setStatusBadge("running", "Agent Executing");
+                document.getElementById("topStatus").textContent = "Running";
+                document.getElementById("topInterceptor").textContent = "BYPASS";
+                
+                goalStates[d.step] = "bypassed";
+                renderGoalsTracker();
+
+                addEventCard(d.step, "Correction Bypassed", d.message, "rejected", `Tier ${d.tier} | Drift: ${d.drift_type}`);
+                announceToScreenReader("Governance notice: Coherence drift intercepted. Human input required.");
+            });
+
+            es.addEventListener("execution_complete", e => {
+                if (executionState === "COMPLETED" || executionState === "FAILED") return;
+                const d = JSON.parse(e.data);
+                if (d.session_id && d.session_id !== sessionId) return;
+
+                executionState = "COMPLETED";
+                setStatusBadge("completed", "Execution Completed");
+                document.getElementById("topStatus").textContent = "Completed";
+                document.getElementById("topStage").textContent = "Execution Complete";
+                document.getElementById("stepAction").textContent = "Execution completed successfully.";
+                updatePipeline(8); 
+                updateBreadcrumbs("completed");
+
+                const dot = document.getElementById("streamHealthDot");
+                if (dot) {
+                    dot.style.backgroundColor = "var(--text-dark)";
+                    dot.style.animation = "none";
+                }
+                document.getElementById("healthStream").textContent = "Closed";
+                document.getElementById("healthAgent").textContent = "Completed";
+                document.getElementById("healthGov").textContent = "Standby";
+
+                es.close();
+                announceToScreenReader("Execution completed successfully.");
+                setTimeout(() => {
+                    window.location.href = `/review/${sessionId}`;
+                }, 2500);
+            });
+
+            es.addEventListener("execution_error", e => {
+                if (executionState === "COMPLETED" || executionState === "FAILED") return;
+                const d = JSON.parse(e.data);
+                if (d.session_id && d.session_id !== sessionId) return;
+
+                executionState = "FAILED";
+                setStatusBadge("failed", "Failed");
+                document.getElementById("topStatus").textContent = "Error";
+                document.getElementById("topStage").textContent = "Execution Failed";
+                document.getElementById("stepAction").textContent = "Execution failed.";
+                addEventCard("—", "Execution Interrupted", d.error, "critical", "Error");
+
+                const dot = document.getElementById("streamHealthDot");
+                if (dot) {
+                    dot.style.backgroundColor = "var(--danger)";
+                    dot.style.animation = "none";
+                }
+                document.getElementById("healthStream").textContent = "Closed";
+                document.getElementById("healthAgent").textContent = "Error";
+                document.getElementById("healthGov").textContent = "Standby";
+
+                es.close();
+                announceToScreenReader("Execution failed because the model provider returned an error.");
+                setTimeout(() => {
+                    window.location.href = `/review/${sessionId}`;
+                }, 2500);
+            });
+        }
 
         function sendDecision(decision) {
             clearInterval(countdownInterval);
@@ -760,28 +1548,43 @@
             })
             .then(res => res.json())
             .then(data => {
-                addEventCard("—", decision === "approve" ? "User Approved Correction" : "User Rejected Correction", 
+                addEventCard("—", decision === "approve" ? "User Authorized Correction" : "User Rejected Correction", 
                              decision === "approve" ? "The proposed correction has been authorized." : "The correction was bypassed by user request.", 
-                             decision, "");
+                             decision === "approve" ? "approve" : "rejected", "");
             })
             .catch(err => console.error("Failed to post decision: ", err));
         }
 
         function addEventCard(step, title, message, tag, metadata) {
+            const eventKey = `${step}_${title}_${tag}`;
+            if (processedEvents.has(eventKey)) return;
+            processedEvents.add(eventKey);
+
             eventCount++;
-            document.getElementById("feedCount").textContent = `${eventCount} events`;
+            document.getElementById("feedCount").textContent = `${eventCount} event${eventCount === 1 ? '' : 's'}`;
 
             const feed = document.getElementById("eventFeed");
+            if (eventCount === 1) feed.innerHTML = "";
+
             const card = document.createElement("div");
             card.className = "feed-card";
+            card.setAttribute("tabindex", "0");
+            
+            const now = new Date();
+            const timeStr = String(now.getHours()).padStart(2, '0') + ":" + 
+                            String(now.getMinutes()).padStart(2, '0') + ":" + 
+                            String(now.getSeconds()).padStart(2, '0');
             
             card.innerHTML = `
                 <div class="feed-card-header">
-                    <span class="feed-card-title">Step ${step}: ${title}</span>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-family:monospace; font-size:10px; color:var(--text-dark);">${timeStr}</span>
+                        <span class="feed-card-title">Step ${step}: ${title}</span>
+                    </div>
                     <span class="feed-card-tag tag-${tag}">${tag}</span>
                 </div>
                 <div class="feed-card-message">${message}</div>
-                ${metadata ? `<div class="feed-card-score">${metadata}</div>` : ""}
+                ${metadata ? `<div style="font-size: 10px; color: var(--text-dark); font-family: monospace; border-top: 1px solid var(--border-color); padding-top: 4px; margin-top: 2px;">${metadata}</div>` : ""}
             `;
             
             feed.prepend(card);
@@ -791,6 +1594,18 @@
             const isLight = document.documentElement.classList.toggle('light-theme');
             localStorage.setItem('theme', isLight ? 'light' : 'dark');
         }
+
+        async function initDashboard() {
+            setStatusBadge("initializing", "Agent Initializing");
+            document.getElementById("topStatus").textContent = "Initializing";
+            document.getElementById("topStage").textContent = "Preparing...";
+            document.getElementById("topCoherence").textContent = "Waiting for first evaluation";
+            document.getElementById("topInterceptor").textContent = "STANDBY";
+            
+            await fetchInitialSessionData();
+            startEventStream();
+        }
+        initDashboard();
     </script>
 </body>
 </html>

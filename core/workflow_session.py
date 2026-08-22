@@ -51,6 +51,7 @@ class WorkflowSession:
     final_score: float = 0.0
     user_decisions: List[dict] = field(default_factory=list)
     created_at: float = field(default_factory=time.time)
+    error_message: Optional[str] = None
 
     def to_dict(self):
         import dataclasses
@@ -63,9 +64,7 @@ class WorkflowSession:
         return d
 
     def save(self, path="sessions"):
-        os.makedirs(path, exist_ok=True)
-        with open(f"{path}/{self.session_id}.json", "w") as f:
-            json.dump(self.to_dict(), f, indent=2)
+        save_session_dict(self.session_id, self.to_dict(), path)
 
     @classmethod
     def load(cls, session_id, path="sessions"):
@@ -76,3 +75,10 @@ class WorkflowSession:
             )
         with open(fpath) as f:
             return json.load(f)
+
+def save_session_dict(session_id, ws_data, path="sessions"):
+    os.makedirs(path, exist_ok=True)
+    temp_path = f"{path}/{session_id}.json.tmp"
+    with open(temp_path, "w") as f:
+        json.dump(ws_data, f, indent=2)
+    os.replace(temp_path, f"{path}/{session_id}.json")

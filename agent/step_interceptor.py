@@ -57,9 +57,22 @@ class StepInterceptor:
     def anchor(self, task: str, subgoals: List[str]):
         self.detector.anchor_goal(task, subgoals)
 
-    def intercept(self, step_num: int, step_output: dict) -> InterceptorEvent:
+    def intercept(self, step_num: int, step_output: dict, total_steps: int = 5) -> InterceptorEvent:
         trace   = self.extractor.extract(step_num, step_output)
-        phase   = PHASE_MAP.get(step_num, Phase.CONCLUDE)
+        if total_steps <= 1:
+            phase = Phase.CONCLUDE
+        elif step_num == total_steps:
+            phase = Phase.CONCLUDE
+        else:
+            explore_boundary = max(1, int(total_steps * 0.4))
+            exploit_boundary = max(explore_boundary + 1, int(total_steps * 0.8))
+            if step_num <= explore_boundary:
+                phase = Phase.EXPLORE
+            elif step_num <= exploit_boundary:
+                phase = Phase.EXPLOIT
+            else:
+                phase = Phase.CONCLUDE
+
         record  = self.detector.evaluate_step(
             step_num, trace.composite_text, phase)
         event   = InterceptorEvent(
@@ -172,9 +185,8 @@ def _log_correction_event(session_id, step_number, tier, drift_type,
             "timestamp": __import__('time').time()
         }
         ws_data.setdefault("drift_events", []).append(event)
-        import json, os
-        with open(f"sessions/{session_id}.json", "w") as f:
-            json.dump(ws_data, f, indent=2)
+        from core.workflow_session import save_session_dict
+        save_session_dict(session_id, ws_data)
     except Exception as e:
         print(f"[DriftWatch] Warning: Could not log correction event: {e}")
 

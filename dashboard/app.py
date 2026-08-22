@@ -11,7 +11,7 @@ from flask import Flask, Response, jsonify, request, render_template
 from flask_cors import CORS
 from dotenv import load_dotenv
 
-from core.workflow_session import WorkflowSession, SessionPhase
+from core.workflow_session import WorkflowSession, SessionPhase, save_session_dict
 from core.goal_anchor import GoalAnchor
 from core.intervention_gate import resolve_decision, get_pending_payload
 from core.human_readable import get_certificate_meaning
@@ -1793,10 +1793,7 @@ def step2_decompose():
         # Fallback: split task into simple anchors if LLM fails
         anchors = [ws_data["task"]]
     ws_data["goal_anchors"] = anchors
-    import json, os
-    os.makedirs("sessions", exist_ok=True)
-    with open(f"sessions/{session_id}.json", "w") as f:
-        json.dump(ws_data, f, indent=2)
+    save_session_dict(session_id, ws_data)
     return jsonify({"anchors": anchors,
                     "message": "Review these goals. Edit if needed."})
 
@@ -1809,9 +1806,7 @@ def step2_confirm():
     except FileNotFoundError:
         return jsonify({"error": "Session not found"}), 404
     ws_data["goal_anchors"] = edited
-    import json
-    with open(f"sessions/{session_id}.json", "w") as f:
-        json.dump(ws_data, f, indent=2)
+    save_session_dict(session_id, ws_data)
     return jsonify({"next_step": 3})
 
 @app.route("/api/step3/configure", methods=["POST"])
@@ -1825,9 +1820,7 @@ def step3_configure():
     except FileNotFoundError:
         return jsonify({"error": "Session not found"}), 404
     ws_data["sensitivity"] = sensitivity
-    import json
-    with open(f"sessions/{session_id}.json", "w") as f:
-        json.dump(ws_data, f, indent=2)
+    save_session_dict(session_id, ws_data)
     return jsonify({"sensitivity": sensitivity, "next_step": 4})
 
 @app.route("/api/step4/launch", methods=["POST"])
@@ -1838,9 +1831,7 @@ def step4_launch():
     except FileNotFoundError:
         return jsonify({"error": "Session not found"}), 404
     ws_data["phase"] = SessionPhase.EXECUTING.value
-    import json
-    with open(f"sessions/{session_id}.json", "w") as f:
-        json.dump(ws_data, f, indent=2)
+    save_session_dict(session_id, ws_data)
 
     def run_agent_task():
         # Import your existing agent runner here
@@ -1862,13 +1853,21 @@ def step4_launch():
             loaded["corrected_output"] = result.get("output", "")
             loaded["raw_output"]       = result.get("raw_output", "")
             loaded["phase"]            = SessionPhase.REVIEWING.value
-            with open(f"sessions/{session_id}.json", "w") as f:
-                json.dump(loaded, f, indent=2)
+            save_session_dict(session_id, loaded)
             push_sse_event(session_id, "execution_complete",
                            {"session_id": session_id})
         except Exception as e:
+            try:
+                loaded = WorkflowSession.load(session_id)
+                loaded["error_message"] = str(e)
+                loaded["raw_output"] = f"Error: {str(e)}"
+                loaded["corrected_output"] = f"Error: {str(e)}"
+                loaded["phase"] = SessionPhase.COMPLETE.value
+                save_session_dict(session_id, loaded)
+            except Exception as se:
+                print(f"[DriftWatch] Warning: could not save error session: {se}")
             push_sse_event(session_id, "execution_error",
-                           {"error": str(e)})
+                           {"error": str(e), "session_id": session_id})
 
     t = threading.Thread(target=run_agent_task, daemon=True)
     t.start()
@@ -1888,9 +1887,7 @@ def user_decision(session_id):
             "decision": decision,
             "timestamp": time.time()
         })
-        import json
-        with open(f"sessions/{session_id}.json", "w") as f:
-            json.dump(ws_data, f, indent=2)
+        save_session_dict(session_id, ws_data)
     except Exception:
         pass
     return jsonify({"status": "decision_recorded", "decision": decision})
@@ -1916,9 +1913,7 @@ def review_data(session_id):
     ws_data["coherence_certificate"] = cert
     ws_data["final_score"]           = avg
     ws_data["phase"]                 = SessionPhase.COMPLETE.value
-    import json
-    with open(f"sessions/{session_id}.json", "w") as f:
-        json.dump(ws_data, f, indent=2)
+    save_session_dict(session_id, ws_data)
     return jsonify({
         "raw_output":            ws_data.get("raw_output", ""),
         "corrected_output":      ws_data.get("corrected_output", ""),
@@ -1938,8 +1933,10 @@ def sse_stream(session_id):
             queue = _sse_queues.get(session_id, [])
             while seen < len(queue):
                 item = queue[seen]
+                data = dict(item['data']) if isinstance(item['data'], dict) else {"data": item['data']}
+                data['session_id'] = session_id
                 yield f"event: {item['event']}\n"
-                yield f"data: {json.dumps(item['data'])}\n\n"
+                yield f"data: {json.dumps(data)}\n\n"
                 seen += 1
             time.sleep(0.3)
             # Check if execution complete

@@ -63,7 +63,7 @@
             z-index: 1;
             display: flex;
             flex-direction: column;
-            gap: 30px;
+            gap: 24px;
         }
 
         /* Ambient glow */
@@ -141,6 +141,80 @@
             border-color: rgba(239, 68, 68, 0.35);
             color: #ffffff;
             box-shadow: 0 10px 35px rgba(239, 68, 68, 0.15);
+        }
+
+        /* Audit Report Summary Box */
+        .audit-summary-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .audit-summary-title {
+            font-family: var(--font-outfit);
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        @media(max-width: 600px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .summary-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .summary-value {
+            font-size: 13.5px;
+            color: var(--text-main);
+            line-height: 1.5;
+        }
+
+        /* Simulated Drift Highlighting Panel */
+        .drift-alert-banner {
+            display: none;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            border-radius: 12px;
+            padding: 16px;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .drift-alert-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #f87171;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         /* Middle - Two Column Outputs */
@@ -259,6 +333,18 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
+        .timeline-score-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .badge-green { background: rgba(16, 185, 129, 0.15); color: var(--primary); }
+        .badge-yellow { background: rgba(245, 158, 11, 0.15); color: var(--warn); }
+        .badge-red { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+
         .timeline-details {
             flex: 1;
             color: var(--text-main);
@@ -276,19 +362,83 @@
         .row-yellow { background: rgba(245, 158, 11, 0.06); border-color: rgba(245, 158, 11, 0.15); }
         .row-red { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.2); }
 
-        /* Actions Footer */
-        .actions-footer {
-            display: flex;
-            justify-content: space-between;
-            gap: 16px;
+        /* Action Section & Cards */
+        .action-section {
             margin-top: 10px;
+            width: 100%;
         }
 
-        .btn-action {
+        .action-cards-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media(max-width: 768px) {
+            .action-cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .action-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 16px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .action-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        :root.light-theme .action-card:hover {
+            border-color: rgba(0, 0, 0, 0.15);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+        }
+
+        .action-card.primary-card {
+            border-color: rgba(16, 185, 129, 0.25);
+            background: rgba(16, 185, 129, 0.02);
+        }
+
+        .action-card.primary-card:hover {
+            border-color: rgba(16, 185, 129, 0.4);
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.08);
+        }
+
+        .action-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .action-card-title {
+            font-family: var(--font-outfit);
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .action-card-text {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .btn-card {
             font-family: var(--font-inter);
             font-size: 13px;
             font-weight: 600;
-            padding: 14px 28px;
+            padding: 12px 24px;
             border-radius: 10px;
             cursor: pointer;
             transition: all 0.3s;
@@ -296,28 +446,29 @@
             outline: none;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
+            width: 100%;
         }
 
-        .btn-export {
+        .btn-secondary-card {
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid rgba(255, 255, 255, 0.08);
             color: var(--text-main);
         }
 
-        .btn-export:hover {
+        .btn-secondary-card:hover {
             background: rgba(255, 255, 255, 0.08);
             border-color: rgba(255, 255, 255, 0.15);
         }
 
-        .btn-new-run {
+        .btn-primary-card {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: #080b11;
             box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
         }
 
-        .btn-new-run:hover {
-            transform: translateY(-1px);
+        .btn-primary-card:hover {
             box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
         }
 
@@ -356,18 +507,10 @@
             stroke-linecap: round;
             stroke-linejoin: round;
         }
-        .moon-icon {
-            display: none;
-        }
-        .sun-icon {
-            display: block;
-        }
-        :root.light-theme .moon-icon {
-            display: block;
-        }
-        :root.light-theme .sun-icon {
-            display: none;
-        }
+        .moon-icon { display: none; }
+        .sun-icon { display: block; }
+        :root.light-theme .moon-icon { display: block; }
+        :root.light-theme .sun-icon { display: none; }
 
         /* Light theme overrides */
         :root.light-theme {
@@ -392,57 +535,27 @@
             --text-dark: #9ca3af;
         }
 
-        :root.light-theme body {
-            background: radial-gradient(circle at 50% 0%, #ffffff 0%, var(--bg-color) 70%) !important;
-        }
-
-        :root.light-theme h1,
-        :root.light-theme h2,
-        :root.light-theme h3,
-        :root.light-theme .cert-title {
-            background: linear-gradient(135deg, #111827 40%, #047857 100%) !important;
-            -webkit-background-clip: text !important;
-            -webkit-text-fill-color: transparent !important;
-            color: var(--text-main);
-        }
-
-        :root.light-theme .card,
-        :root.light-theme .metric-box,
-        :root.light-theme .audit-panel {
-            background: rgba(255, 255, 255, 0.85) !important;
-            border-color: rgba(0, 0, 0, 0.08) !important;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04) !important;
-        }
-
-        :root.light-theme .timeline-step {
-            background: rgba(255, 255, 255, 0.9) !important;
-            border-color: rgba(0, 0, 0, 0.08) !important;
-        }
-
-        :root.light-theme .timeline-step:hover {
-            border-color: rgba(0, 0, 0, 0.15) !important;
-        }
-
-        :root.light-theme .btn-new-run {
-            color: #080b11 !important;
-        }
-
-        :root.light-theme .btn-export {
-            background: rgba(0, 0, 0, 0.03) !important;
-            border-color: rgba(0, 0, 0, 0.12) !important;
-            color: #1f2937 !important;
-        }
-        :root.light-theme .btn-export:hover {
-            background: rgba(0, 0, 0, 0.06) !important;
-            border-color: rgba(0, 0, 0, 0.2) !important;
+        /* Screen reader helper */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
     </style>
 </head>
 <body>
 
+    <!-- Screen Reader announcements -->
+    <div id="srLiveAnnouncer" class="sr-only" aria-live="polite" role="status"></div>
+
     <button id="themeToggle" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Theme">
-        <!-- Sun icon (for dark mode to switch to light) -->
-        <svg class="sun-icon" viewBox="0 0 24 24">
+        <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="12" r="5"></circle>
             <line x1="12" y1="1" x2="12" y2="3"></line>
             <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -453,8 +566,7 @@
             <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
         </svg>
-        <!-- Moon icon (for light mode to switch to dark) -->
-        <svg class="moon-icon" viewBox="0 0 24 24">
+        <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>
     </button>
@@ -462,97 +574,275 @@
     <div class="ambient-glow"></div>
 
     <div class="container">
-        <!-- TOP: Coherence Certificate badge -->
-        <div class="cert-banner" id="certBanner">
+        <!-- TOP: Coherence Certificate banner -->
+        <div class="cert-banner" id="certBanner" role="banner">
             <div class="cert-info">
                 <div class="cert-title" id="certTitle">✓ COHERENCE CERTIFICATE: PENDING</div>
                 <div class="cert-meaning" id="certMeaning">Audit processing...</div>
             </div>
-            <div class="cert-score-display" id="certScore">—</div>
+            <div class="cert-score-display" id="certScore" aria-label="Average Coherence Score">—</div>
         </div>
+
+        <!-- Safety Audit Summary Panel -->
+        <section class="audit-summary-box" aria-labelledby="summaryHeading">
+            <h2 id="summaryHeading" class="audit-summary-title">Safety Audit Summary</h2>
+            
+            <!-- Intentional EV Market Drift Callout -->
+            <div class="drift-alert-banner" id="simDriftBanner">
+                <div class="drift-alert-title">⚠ Simulated Goal Substitution Injected</div>
+                <div style="font-size: 12.5px; line-height: 1.5; color: var(--text-main);">
+                    This run demonstrates DriftWatch's correction capabilities. The agent attempted to substitute the original task goals with an unrelated discussion of <strong>global EV market adoption and battery demand trends</strong>.
+                </div>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <span class="summary-label">Original Task Goal</span>
+                    <span class="summary-value" id="summaryOriginalTask">—</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Execution Outcome</span>
+                    <span class="summary-value" id="summaryExecutionOutcome">Analyzing coherence records...</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Drift Intercepts</span>
+                    <span class="summary-value" id="summaryDriftEvents">0 events flagged</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">Final Status</span>
+                    <span class="summary-value" id="summaryFinalStatus">—</span>
+                </div>
+            </div>
+        </section>
 
         <!-- MIDDLE: Two column output comparison -->
         <div class="output-grid">
             <!-- Left: Without DriftWatch -->
-            <div class="output-card" id="rawCard">
-                <h3>Without DriftWatch</h3>
+            <section class="output-card" id="rawCard" aria-labelledby="rawHeading">
+                <h3 id="rawHeading">Without DriftWatch</h3>
                 <span class="output-subtitle">What the agent was producing before correction</span>
-                <div class="output-text" id="rawOutput">Loading raw output...</div>
-            </div>
+                <div class="output-text" id="rawOutput" tabindex="0">Loading raw output...</div>
+            </section>
 
             <!-- Right: With DriftWatch -->
-            <div class="output-card success-corr" id="correctedCard">
-                <h3>With DriftWatch</h3>
+            <section class="output-card success-corr" id="correctedCard" aria-labelledby="correctedHeading">
+                <h3 id="correctedHeading">With DriftWatch</h3>
                 <span class="output-subtitle">Verified, corrected output</span>
-                <div class="output-text" id="correctedOutput">Loading corrected output...</div>
-            </div>
+                <div class="output-text" id="correctedOutput" tabindex="0">Loading corrected output...</div>
+            </section>
         </div>
 
         <!-- BOTTOM: Drift Timeline -->
-        <div class="timeline-card">
-            <h3>Drift Timeline</h3>
-            <div class="timeline-list" id="timelineList"></div>
-        </div>
+        <section class="timeline-card" aria-labelledby="timelineHeading">
+            <h3 id="timelineHeading">Drift Timeline</h3>
+            <div class="timeline-list" id="timelineList" role="feed"></div>
+        </section>
 
-        <!-- ACTIONS FOOTER -->
-        <div class="actions-footer">
-            <button class="btn-action btn-export" onclick="exportAudit()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Download Audit Log
-            </button>
-            
-            <button class="btn-action btn-new-run" onclick="window.location.href='/'">
-                ↺ Run New Task
-            </button>
-        </div>
+        <!-- AUDIT & CONTINUE ACTION CARDS -->
+        <section class="action-section" aria-labelledby="actionSectionHeading">
+            <h2 id="actionSectionHeading" class="sr-only">Audit & Continue Actions</h2>
+            <div class="action-cards-grid">
+                <!-- Card 1: Audit Log -->
+                <div class="action-card">
+                    <div class="action-card-body">
+                        <h3 class="action-card-title">Download Audit Log</h3>
+                        <p class="action-card-text">Export the complete execution history, governance decisions, drift events, and correction actions.</p>
+                    </div>
+                    <button class="btn-card btn-secondary-card" onclick="exportAudit()" aria-label="Download session audit logs in JSON format">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        Download Audit Log
+                    </button>
+                </div>
+
+                <!-- Card 2: New Task -->
+                <div class="action-card primary-card">
+                    <div class="action-card-body">
+                        <h3 class="action-card-title text-primary-card">Run a New Task</h3>
+                        <p class="action-card-text">Start another DriftWatch workflow with a new task and monitoring policy.</p>
+                    </div>
+                    <button class="btn-card btn-primary-card" onclick="window.location.href='/'" aria-label="Start another DriftWatch workflow with a new task">
+                        Run New Task &rarr;
+                    </button>
+                </div>
+            </div>
+        </section>
     </div>
 
     <script>
         const sessionId = window.location.pathname.split("/").pop();
 
+        function announceToScreenReader(message) {
+            const announcer = document.getElementById("srLiveAnnouncer");
+            if (announcer) {
+                announcer.textContent = "";
+                setTimeout(() => { announcer.textContent = message; }, 50);
+            }
+        }
+
+        // Clean deep reasoning thoughts and think blocks from rendering
+        function stripInternalReasoning(text) {
+            if (!text) return "";
+            // Remove <think>...</think> tags and everything inside them
+            let clean = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+            clean = clean.replace(/<think>[\s\S]*$/gi, ''); // clean unclosed think tags
+            
+            // Clean up thinking headers if they exist
+            clean = clean.replace(/Thinking Process:[\s\S]*?\n\n/gi, '');
+            clean = clean.replace(/Thinking Process:/gi, '');
+            
+            return clean.trim();
+        }
+
+        // Fetch task details from full session JSON
+        fetch(`/api/export/${sessionId}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById("summaryOriginalTask").textContent = data.task || "Not configured.";
+            })
+            .catch(err => console.error("Could not fetch session config details:", err));
+
         // Fetch data on load
         fetch(`/api/review/${sessionId}`)
             .then(res => res.json())
             .then(data => {
-                renderCertificate(data.certificate, data.certificate_meaning, data.final_score);
-                
-                document.getElementById("rawOutput").textContent = data.raw_output || "No output generated.";
-                document.getElementById("correctedOutput").textContent = data.corrected_output || "No output generated.";
-                
-                if (data.certificate === "FAIL") {
-                    document.getElementById("rawCard").classList.add("fail-raw");
+                const rawOut = data.raw_output || "";
+                const corrOut = data.corrected_output || "";
+                const steps = data.steps || [];
+                const driftEvents = data.drift_timeline || [];
+                const totalSteps = data.total_steps || 5;
+
+                // Determine Mutually Exclusive Rendering Modes
+                let mode = "A"; // Default Mode A (Success / Aligned)
+                const isFailure = !!data.error_message || steps.some(s => {
+                    const act = s.action.toLowerCase();
+                    return act.includes("error:") || act.includes("rate limit") || act.includes("ratelimit") || act.includes("provider failure");
+                });
+
+                const isPartial = !isFailure && steps.length < totalSteps;
+                const hasDrift = driftEvents.length > 0;
+
+                if (isFailure) {
+                    mode = "C"; // Provider / Infrastructure Failure
+                } else if (isPartial) {
+                    mode = "D"; // Partial / Aborted Execution
+                } else if (hasDrift) {
+                    mode = "B"; // Semantic Drift
+                } else {
+                    mode = "A"; // Success / Aligned
                 }
 
-                renderTimeline(data.steps, data.drift_timeline);
+                // Render Raw vs Corrected outputs
+                const cleanedRaw = stripInternalReasoning(rawOut);
+                const cleanedCorr = stripInternalReasoning(corrOut);
+
+                if (mode === "C") {
+                    document.getElementById("rawOutput").textContent = "Execution Failed\n\nModel provider returned a rate-limit error or connection timeout.\n\n" + (data.error_message || cleanedRaw);
+                    document.getElementById("correctedOutput").textContent = "Drift Evaluation Unavailable\n\nNo valid model output was available for comparison.";
+                    document.getElementById("rawCard").classList.add("fail-raw");
+                } else if (mode === "D") {
+                    document.getElementById("rawOutput").textContent = cleanedRaw || "Partial output generated before run was aborted.";
+                    document.getElementById("correctedOutput").textContent = cleanedCorr || "No correction applied.";
+                } else {
+                    document.getElementById("rawOutput").textContent = cleanedRaw || "No output generated.";
+                    document.getElementById("correctedOutput").textContent = cleanedCorr || "No output generated.";
+                    if (data.certificate === "FAIL") {
+                        document.getElementById("rawCard").classList.add("fail-raw");
+                    }
+                }
+
+                // Check for simulated drift banner (only if not a provider failure)
+                const hasEvDrift = steps.some(s => s.action.toLowerCase().includes("ev market") || s.action.toLowerCase().includes("battery"));
+                if (hasEvDrift && mode !== "C") {
+                    document.getElementById("simDriftBanner").style.display = "flex";
+                }
+
+                // Render Stats, Outcomes & Certificate based on modes
+                let outcomeText = "";
+                let statusText = "";
+                let certText = data.certificate || "PASS";
+                let certMeaning = data.certificate_meaning || "";
+                let finalScoreText = "—";
+
+                if (mode === "C") {
+                    statusText = "FAILED";
+                    outcomeText = "Execution could not be completed because the model provider was unavailable.";
+                    certText = "UNAVAILABLE";
+                    certMeaning = "Coherence could not be evaluated because no valid model output was available due to rate limit or execution error.";
+                    document.getElementById("summaryDriftEvents").textContent = "0 events";
+                } else if (mode === "D") {
+                    statusText = "ABORTED";
+                    outcomeText = "The execution was stopped or aborted before completing all goals.";
+                    certText = "PARTIAL";
+                    certMeaning = "The execution was stopped or aborted before completing all goals.";
+                    const avg = data.final_score || 0;
+                    finalScoreText = avg.toFixed(3);
+                    document.getElementById("summaryDriftEvents").textContent = `${driftEvents.length} event${driftEvents.length === 1 ? "" : "s"} flagged`;
+                } else if (mode === "B") {
+                    const correctedCount = driftEvents.filter(e => e.status === "auto_applied" || e.status === "user_approved").length;
+                    const correctionWord = correctedCount === 1 ? "correction" : "corrections";
+                    statusText = "Corrected & Secured";
+                    outcomeText = `Agent drifted during execution, but DriftWatch successfully applied ${correctedCount} ${correctionWord}.`;
+                    const avg = data.final_score || 0;
+                    finalScoreText = avg.toFixed(3);
+                    document.getElementById("summaryDriftEvents").textContent = `${driftEvents.length} event${driftEvents.length === 1 ? "" : "s"} flagged`;
+                } else {
+                    statusText = "Aligned & Verified";
+                    outcomeText = "Agent completed task safely with full coherence alignment.";
+                    const avg = data.final_score || 0;
+                    finalScoreText = avg.toFixed(3);
+                    document.getElementById("summaryDriftEvents").textContent = "0 events";
+                }
+
+                document.getElementById("summaryExecutionOutcome").textContent = outcomeText;
+                document.getElementById("summaryFinalStatus").textContent = statusText;
+
+                // Render Certificate
+                const banner = document.getElementById("certBanner");
+                const title = document.getElementById("certTitle");
+                const mean = document.getElementById("certMeaning");
+                const scoreDisp = document.getElementById("certScore");
+
+                banner.className = "cert-banner";
+                scoreDisp.textContent = `Avg Score: ${finalScoreText}`;
+                mean.textContent = certMeaning;
+
+                if (mode === "C") {
+                    banner.classList.add("cert-fail");
+                    title.textContent = "✗ COHERENCE EVALUATION: UNAVAILABLE";
+                } else if (mode === "D") {
+                    banner.classList.add("cert-warn");
+                    title.textContent = "⚠ COHERENCE CERTIFICATE: PARTIAL / ABORTED";
+                } else {
+                    if (certText === "PASS") {
+                        banner.classList.add("cert-pass");
+                        title.textContent = "✓ COHERENCE CERTIFICATE: PASS";
+                    } else if (certText === "WARN") {
+                        banner.classList.add("cert-warn");
+                        title.textContent = "⚠ COHERENCE CERTIFICATE: WARN";
+                    } else {
+                        banner.classList.add("cert-fail");
+                        title.textContent = "✗ COHERENCE CERTIFICATE: FAIL";
+                    }
+                }
+
+                // Render Timeline
+                renderTimeline(steps, driftEvents, mode, totalSteps);
+
+                // Screen reader announcements
+                if (mode === "C") {
+                    announceToScreenReader("Execution failed because the model provider returned an error.");
+                } else if (mode === "D") {
+                    announceToScreenReader(`Coherence audit completed. Certificate status: PARTIAL. Final average coherence score: ${finalScoreText}.`);
+                } else {
+                    announceToScreenReader(`Coherence audit completed. Certificate status: ${certText}. Final average coherence score: ${finalScoreText}.`);
+                }
             })
             .catch(err => {
                 console.error("Failed to load review data: ", err);
                 document.getElementById("certMeaning").textContent = "Error compiling audit data.";
             });
 
-        function renderCertificate(cert, meaning, score) {
-            const banner = document.getElementById("certBanner");
-            const title = document.getElementById("certTitle");
-            const mean = document.getElementById("certMeaning");
-            const scoreDisp = document.getElementById("certScore");
-
-            scoreDisp.textContent = `Avg: ${score.toFixed(3)}`;
-            mean.textContent = meaning;
-
-            banner.className = "cert-banner"; // reset
-            if (cert === "PASS") {
-                banner.classList.add("cert-pass");
-                title.textContent = "✓ COHERENCE CERTIFICATE: PASS";
-            } else if (cert === "WARN") {
-                banner.classList.add("cert-warn");
-                title.textContent = "⚠ COHERENCE CERTIFICATE: WARN";
-            } else {
-                banner.classList.add("cert-fail");
-                title.textContent = "✗ COHERENCE CERTIFICATE: FAIL";
-            }
-        }
-
-        function renderTimeline(steps, events) {
+        function renderTimeline(steps, events, mode, totalSteps) {
             const list = document.getElementById("timelineList");
             list.innerHTML = "";
 
@@ -561,28 +851,49 @@
                 return;
             }
 
-            steps.forEach(step => {
-                // Find matching event if any
+            // Render executed steps
+            steps.forEach((step, idx) => {
+                const stepTextLower = (step.action || "").toLowerCase();
+                const isStepFailure = stepTextLower.includes("rate limit") || stepTextLower.includes("ratelimit") || stepTextLower.includes("provider failure") || stepTextLower.includes("api error") || stepTextLower.includes("error:") || (mode === "C" && idx === steps.length - 1);
+
                 const ev = events.find(e => e.step_number === step.step_number);
                 
                 const row = document.createElement("div");
                 row.className = "timeline-row";
+                row.setAttribute("tabindex", "0");
                 
-                // Color row based on score
-                if (step.drift_score >= 0.75) {
+                let scoreMeaning = "";
+                let badgeClass = "";
+                let scoreText = step.drift_score.toFixed(3);
+
+                if (isStepFailure) {
+                    row.classList.add("row-red");
+                    scoreMeaning = "Execution Failed";
+                    badgeClass = "badge-red";
+                    scoreText = "—";
+                } else if (step.drift_score >= 0.75) {
                     row.classList.add("row-green");
+                    scoreMeaning = "Aligned (Safe)";
+                    badgeClass = "badge-green";
                 } else if (step.drift_score >= 0.60) {
                     row.classList.add("row-yellow");
+                    scoreMeaning = "Slight Drift (Warning)";
+                    badgeClass = "badge-yellow";
                 } else {
                     row.classList.add("row-red");
+                    scoreMeaning = "Severe Drift (Deviation)";
+                    badgeClass = "badge-red";
                 }
 
                 let details = step.action;
                 let correctionHtml = "";
 
-                if (ev) {
+                if (isStepFailure) {
+                    details = "Model provider returned a rate-limit/API/execution error.";
+                    correctionHtml = `<span class="timeline-correction" style="color:#f87171;">Correction could not be evaluated because model output was unavailable.</span>`;
+                } else if (ev) {
                     if (ev.status === "user_rejected" || ev.status === "user_rejected_no_correction") {
-                        correctionHtml = `<span class="timeline-correction" style="color:#f87171;">Correction Rejected: Continue anyway</span>`;
+                        correctionHtml = `<span class="timeline-correction" style="color:#f87171;">Correction Rejected: Bypassed by user</span>`;
                     } else if (ev.status === "user_approved" || ev.status === "auto_applied") {
                         correctionHtml = `<span class="timeline-correction" style="color:#34d399;">Correction Applied: ${ev.correction_applied}</span>`;
                     }
@@ -591,7 +902,8 @@
                 row.innerHTML = `
                     <div class="timeline-step-meta">
                         <span class="timeline-step-num">Step ${step.step_number}</span>
-                        <span class="timeline-score">${step.drift_score.toFixed(3)}</span>
+                        <span class="timeline-score">${scoreText}</span>
+                        <span class="timeline-score-badge ${badgeClass}">${scoreMeaning}</span>
                     </div>
                     <div class="timeline-details">
                         <div>${details}</div>
@@ -601,6 +913,27 @@
                 
                 list.appendChild(row);
             });
+
+            // If partial run, render the remaining steps as Aborted
+            if (mode === "D" && steps.length < totalSteps) {
+                for (let stepNum = steps.length + 1; stepNum <= totalSteps; stepNum++) {
+                    const row = document.createElement("div");
+                    row.className = "timeline-row row-yellow";
+                    row.setAttribute("tabindex", "0");
+                    
+                    row.innerHTML = `
+                        <div class="timeline-step-meta">
+                            <span class="timeline-step-num">Step ${stepNum}</span>
+                            <span class="timeline-score">—</span>
+                            <span class="timeline-score-badge badge-yellow">Aborted / Unexecuted</span>
+                        </div>
+                        <div class="timeline-details">
+                            <div>Goal was not executed because the run was aborted.</div>
+                        </div>
+                    `;
+                    list.appendChild(row);
+                }
+            }
         }
 
         function exportAudit() {

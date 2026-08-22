@@ -185,7 +185,10 @@
             font-family: var(--font-inter);
             font-size: 14px;
             line-height: 1.6;
-            resize: none;
+            min-height: 120px;
+            max-height: 300px;
+            overflow-y: auto;
+            resize: vertical;
             outline: none;
             transition: all 0.3s;
             margin-bottom: 6px;
@@ -228,8 +231,92 @@
             box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
         }
 
-        button.btn-primary:active {
-            transform: translateY(1px);
+        /* Accordion Helper */
+        .accordion-helper {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            background: rgba(255, 255, 255, 0.01);
+            overflow: hidden;
+            text-align: left;
+        }
+        .accordion-trigger {
+            width: 100%;
+            padding: 14px 18px;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-family: var(--font-inter);
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            outline: none;
+            transition: background 0.3s;
+        }
+        .accordion-trigger:hover,
+        .accordion-trigger:focus-visible {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        :root.light-theme .accordion-trigger:hover,
+        :root.light-theme .accordion-trigger:focus-visible {
+            background: rgba(0, 0, 0, 0.03);
+        }
+        .chevron-icon {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--text-muted);
+        }
+        .accordion-trigger[aria-expanded="true"] .chevron-icon {
+            transform: rotate(180deg);
+        }
+        .accordion-content {
+            padding: 0 18px 16px 18px;
+            font-size: 12.5px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+        .accordion-content ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .accordion-content li {
+            position: relative;
+            padding-left: 14px;
+        }
+        .accordion-content li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+        }
+
+        /* Goal Coverage Card */
+        .goal-coverage-card {
+            background: rgba(16, 185, 129, 0.02);
+            border: 1px solid rgba(16, 185, 129, 0.15);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .goal-coverage-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+        }
+        .goal-coverage-value {
+            font-family: var(--font-outfit);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary);
         }
 
         /* Step 2 Subgoals */
@@ -248,15 +335,42 @@
         .anchor-chip {
             display: flex;
             align-items: center;
-            background: rgba(16, 185, 129, 0.08);
+            background: rgba(8, 11, 17, 0.95);
             border: 1px solid rgba(16, 185, 129, 0.2);
-            border-radius: 8px;
-            padding: 10px 14px;
-            font-size: 13px;
-            color: #a7f3d0;
-            gap: 10px;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: 14px;
+            color: #ffffff;
+            gap: 16px;
             transition: all 0.3s;
             animation: slideIn 0.3s ease-out;
+        }
+
+        .anchor-num-badge {
+            font-family: var(--font-outfit);
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary);
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .anchor-target-label {
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--text-dark);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .anchor-chip:focus-within {
+            border-color: #10b981;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
         }
 
         @keyframes slideIn {
@@ -271,25 +385,27 @@
         }
 
         .anchor-text:focus {
-            background: rgba(255, 255, 255, 0.04);
+            background: rgba(255, 255, 255, 0.08);
             border-radius: 4px;
-            padding: 2px 4px;
+            padding: 4px 8px;
         }
 
         .btn-delete-anchor {
             background: none;
             border: none;
-            color: #f87171;
+            color: #ef4444;
             cursor: pointer;
-            font-size: 14px;
-            padding: 2px;
-            opacity: 0.7;
-            transition: opacity 0.2s;
+            font-size: 16px;
+            padding: 4px;
+            opacity: 0.9;
+            transition: opacity 0.2s, transform 0.2s;
         }
 
         .btn-delete-anchor:hover {
             opacity: 1;
+            transform: scale(1.1);
         }
+
 
         .btn-secondary {
             background: transparent;
@@ -357,6 +473,32 @@
             font-size: 12px;
             color: var(--text-muted);
             line-height: 1.5;
+            padding-left: 2px;
+        }
+
+        /* Risk Badges */
+        .risk-badge {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+        .badge-info {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        .badge-primary {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        .badge-warn {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warn);
+            border: 1px solid rgba(245, 158, 11, 0.2);
         }
 
         /* Step 4 Launch */
@@ -537,13 +679,29 @@
         :root.light-theme .btn-primary {
             box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
         }
+
+        /* Screen reader only utility class */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
     </style>
 </head>
 <body>
 
+    <!-- Screen Reader Live Announcement Region -->
+    <div id="srLiveAnnouncer" class="sr-only" aria-live="polite" role="status"></div>
+
     <button id="themeToggle" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Theme">
         <!-- Sun icon (for dark mode to switch to light) -->
-        <svg class="sun-icon" viewBox="0 0 24 24">
+        <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="12" cy="12" r="5"></circle>
             <line x1="12" y1="1" x2="12" y2="3"></line>
             <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -555,7 +713,7 @@
             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
         </svg>
         <!-- Moon icon (for light mode to switch to dark) -->
-        <svg class="moon-icon" viewBox="0 0 24 24">
+        <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>
     </button>
@@ -570,8 +728,11 @@
             <div class="logo-subtitle">Guided Multi-Step Workflow Onboarding</div>
         </div>
 
+        <!-- Progress Text Indicator -->
+        <div id="progressStepText" style="text-align: center; font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 12px; font-family: var(--font-outfit);" aria-live="polite"></div>
+
         <!-- Progress Bar -->
-        <div class="progress-bar-container">
+        <div class="progress-bar-container" role="img" aria-label="Onboarding Progress Bar">
             <div class="progress-step"><div class="progress-step-fill" id="fill1"></div></div>
             <div class="progress-step"><div class="progress-step-fill" id="fill2"></div></div>
             <div class="progress-step"><div class="progress-step-fill" id="fill3"></div></div>
@@ -579,50 +740,88 @@
         </div>
 
         <!-- Error Panel -->
-        <div class="error-msg" id="errorPanel"></div>
+        <div class="error-msg" id="errorPanel" aria-live="assertive" role="alert"></div>
 
         <!-- STEP 1 CARD -->
         <div class="step-card active" id="step1">
-            <h2>What do you want the agent to do?</h2>
-            <div class="instruction">Enter a detailed instruction for the agent. DriftWatch will compile this into discrete checkpoints.</div>
-            <textarea id="taskInput" rows="5" placeholder="Be specific. Example: Research the environmental impact of lithium mining on groundwater quality in South America and write exactly 3 specific policy regulations."></textarea>
-            <div class="char-counter" id="charCount">0 / 500</div>
+            <h2 id="step1Heading" tabindex="-1" style="outline: none;">What should the agent accomplish?</h2>
+            <div class="instruction" id="taskInstruction">Describe the outcome you want. DriftWatch will translate your intent into measurable checkpoints and continuously monitor the agent against them.</div>
+            <textarea id="taskInput" rows="5" placeholder="Be specific. Example: Analyze the impact of artificial intelligence on cybersecurity in 2026. Identify the five most significant AI-driven cybersecurity threats, analyze their impact, compare mitigation strategies, and recommend security measures." aria-describedby="taskInstruction" aria-required="true"></textarea>
+            <div class="char-counter" id="charCount" aria-live="polite">0 / 10000</div>
+            
+            <!-- Collapsible Task Accordion Helper -->
+            <div class="accordion-helper" id="accordionHelper">
+                <button class="accordion-trigger" type="button" aria-expanded="false" onclick="toggleAccordion()" aria-controls="accordionContent">
+                    <span>What makes a good task?</span>
+                    <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="accordion-content" id="accordionContent" hidden>
+                    <ul>
+                        <li><strong>Define the desired outcome:</strong> Clearly specify the target file format, answers, or metrics you need.</li>
+                        <li><strong>Specify important constraints:</strong> Explicitly state forbidden topics, regulatory bounds, or formatting rules.</li>
+                        <li><strong>Describe what success looks like:</strong> Include specific numbers, sections, or qualitative benchmarks.</li>
+                    </ul>
+                </div>
+            </div>
+            
             <button class="btn-primary" onclick="submitStep1()">Analyze Task &rarr;</button>
         </div>
 
         <!-- STEP 2 CARD -->
         <div class="step-card" id="step2">
-            <h2>DriftWatch decomposed your goals</h2>
-            <div class="instruction">Review, modify, or add sub-goals. The agent's reasoning will be monitored against these targets. Click any goal to edit text.</div>
-            <div class="anchors-wrapper" id="anchorsContainer"></div>
+            <h2 id="step2Heading" tabindex="-1" style="outline: none;">Your task has been translated into checkpoints</h2>
+            <div class="instruction" id="goalInstruction">Review, modify, or add sub-goals. The agent's reasoning will be monitored against these targets. Click any goal to edit text.</div>
+            
+            <!-- GOAL COVERAGE SUMMARY WIDGET -->
+            <div class="goal-coverage-card" id="goalCoverageCard" style="display: none;">
+                <span class="goal-coverage-label">Goal Coverage Policy</span>
+                <span class="goal-coverage-value" id="goalCoverageVal">0 monitoring checkpoints</span>
+            </div>
+
+            <div class="anchors-wrapper" id="anchorsContainer" aria-describedby="goalInstruction"></div>
             <button class="btn-secondary" onclick="addAnchor()">+ Add new sub-goal</button>
             <button class="btn-primary" onclick="confirmStep2()">Confirm Goals &rarr;</button>
         </div>
 
         <!-- STEP 3 CARD -->
         <div class="step-card" id="step3">
-            <h2>Configure monitoring sensitivity</h2>
-            <div class="instruction">Set how aggressively DriftWatch should intercept and correct goal drift.</div>
-            <div class="risk-selector">
-                <div class="risk-btn" onclick="setRisk('low')" id="risk-low">
-                    <span class="risk-name">Low Sensitivity (0.60)</span>
-                    <span class="risk-desc">Correct only extreme deviations. Gives the agent higher freedom to execute.</span>
+            <h2 id="step3Heading" tabindex="-1" style="outline: none;">Configure monitoring sensitivity</h2>
+            <div class="instruction" id="sensitivityInstruction">Set how aggressively DriftWatch should intercept and correct goal drift.</div>
+            <div class="risk-selector" role="radiogroup" aria-labelledby="step3Heading" aria-describedby="sensitivityInstruction">
+                <div class="risk-btn" onclick="setRisk('low')" onkeydown="handleRiskKeyDown(event, 'low')" id="risk-low" role="radio" aria-checked="false" tabindex="0">
+                    <div style="display:flex; justify-content:space-between; align-items:center; width: 100%;">
+                        <span class="risk-name">Low Sensitivity (0.60)</span>
+                        <span class="risk-badge badge-info">Exploratory</span>
+                    </div>
+                    <span class="risk-desc"><strong>Best Use:</strong> Creative exploration, content generation, low-compliance tasks.</span>
+                    <span class="risk-desc"><strong>Monitoring:</strong> Loose coherence gate checks. Higher agent freedom.</span>
+                    <span class="risk-desc"><strong>Intervention Intensity:</strong> Minimal corrections applied only on critical task deviations.</span>
                 </div>
-                <div class="risk-btn selected" onclick="setRisk('medium')" id="risk-medium">
-                    <span class="risk-name">Medium Sensitivity (0.75)</span>
-                    <span class="risk-desc">Recommended. Catches moderate goal substitution and drift.</span>
+                <div class="risk-btn selected" onclick="setRisk('medium')" onkeydown="handleRiskKeyDown(event, 'medium')" id="risk-medium" role="radio" aria-checked="true" tabindex="0">
+                    <div style="display:flex; justify-content:space-between; align-items:center; width: 100%;">
+                        <span class="risk-name">Medium Sensitivity (0.75)</span>
+                        <span class="risk-badge badge-primary">Balanced Policy</span>
+                    </div>
+                    <span class="risk-desc"><strong>Best Use:</strong> Standard operational tasks, coding assistant tools, research.</span>
+                    <span class="risk-desc"><strong>Monitoring:</strong> Continuous similarity checking with moderate drift alerts.</span>
+                    <span class="risk-desc"><strong>Intervention Intensity:</strong> Automatic correction and alignment guidance.</span>
                 </div>
-                <div class="risk-btn" onclick="setRisk('high')" id="risk-high">
-                    <span class="risk-name">High Sensitivity (0.88)</span>
-                    <span class="risk-desc">Corrects even slight variations. Safest for compliance and precision-critical tasks.</span>
+                <div class="risk-btn" onclick="setRisk('high')" onkeydown="handleRiskKeyDown(event, 'high')" id="risk-high" role="radio" aria-checked="false" tabindex="0">
+                    <div style="display:flex; justify-content:space-between; align-items:center; width: 100%;">
+                        <span class="risk-name">High Sensitivity (0.88)</span>
+                        <span class="risk-badge badge-warn">Strict Governance</span>
+                    </div>
+                    <span class="risk-desc"><strong>Best Use:</strong> Compliance-heavy tasks, financial analytics, safety-critical workflows.</span>
+                    <span class="risk-desc"><strong>Monitoring:</strong> Micro-alignment checks at every single execution node.</span>
+                    <span class="risk-desc"><strong>Intervention Intensity:</strong> Maximum protection. Human-in-the-loop approvals requested.</span>
                 </div>
             </div>
-            <button class="btn-primary" onclick="confirmStep3()">Configure Settings &rarr;</button>
+            <button class="btn-primary" onclick="confirmStep3()">Save Monitoring Policy &rarr;</button>
         </div>
 
         <!-- STEP 4 CARD -->
         <div class="step-card" id="step4">
-            <h2>Review and Launch Agent</h2>
+            <h2 id="step4Heading" tabindex="-1" style="outline: none;">Review and Launch Agent</h2>
             <div class="instruction">The onboarding is complete. Launch the autonomous agent with real-time guardrails active.</div>
             <div class="summary-box">
                 <div class="summary-item">
@@ -655,12 +854,32 @@
         const textarea = document.getElementById("taskInput");
         textarea.addEventListener("input", () => {
             const len = textarea.value.length;
-            document.getElementById("charCount").textContent = `${len} / 500`;
-            if (len > 500) {
-                textarea.value = textarea.value.substring(0, 500);
-                document.getElementById("charCount").textContent = `500 / 500`;
+            document.getElementById("charCount").textContent = `${len} / 10000`;
+            if (len > 10000) {
+                textarea.value = textarea.value.substring(0, 10000);
+                document.getElementById("charCount").textContent = `10000 / 10000`;
             }
         });
+
+        function toggleAccordion() {
+            const trigger = document.querySelector(".accordion-trigger");
+            const content = document.getElementById("accordionContent");
+            const expanded = trigger.getAttribute("aria-expanded") === "true";
+            
+            trigger.setAttribute("aria-expanded", !expanded);
+            content.hidden = expanded;
+        }
+
+        function announceToScreenReader(message) {
+            const announcer = document.getElementById("srLiveAnnouncer");
+            if (announcer) {
+                announcer.textContent = "";
+                // Small timeout to guarantee screen reader notices the content change
+                setTimeout(() => {
+                    announcer.textContent = message;
+                }, 50);
+            }
+        }
 
         function showStep(stepNum) {
             document.querySelectorAll(".step-card").forEach(c => c.classList.remove("active"));
@@ -677,6 +896,34 @@
                     fill.style.width = "0%";
                 }
             }
+
+             // Focus management: move focus to step heading
+            const heading = document.getElementById(`step${stepNum}Heading`);
+            if (heading) {
+                heading.focus();
+            }
+
+            // Update text label and screen reader description
+            const stepNames = {
+                1: "Define Your Task",
+                2: "Review Goals",
+                3: "Configure Risk",
+                4: "Review & Launch"
+            };
+            const stepProgressMsg = `Step ${stepNum} of 4 — ${stepNames[stepNum]}`;
+            const textElement = document.getElementById("progressStepText");
+            if (textElement) {
+                textElement.textContent = stepProgressMsg;
+            }
+
+            // Screen reader announcement
+            const stepsMap = {
+                1: "Step 1 of 4: Define Your Task. Enter your instruction task.",
+                2: "Step 2 of 4: Review Goals. Review decomposed sub-goals.",
+                3: "Step 3 of 4: Configure Risk. Configure monitoring sensitivity.",
+                4: "Step 4 of 4: Review & Launch. Review and launch agent."
+            };
+            announceToScreenReader(stepsMap[stepNum] || stepProgressMsg);
         }
 
         // Initialize progress fills
@@ -686,6 +933,7 @@
             const panel = document.getElementById("errorPanel");
             panel.textContent = msg;
             panel.style.display = "block";
+            announceToScreenReader(`Error: ${msg}`);
         }
 
         function hideError() {
@@ -699,6 +947,10 @@
                 showError("Please enter a detailed instruction of at least 10 characters.");
                 return;
             }
+            const btn = document.querySelector("#step1 .btn-primary");
+            const origText = btn.textContent;
+            btn.textContent = "Analyzing your task...";
+            btn.disabled = true;
             try {
                 const res = await fetch("/api/step1/submit", {
                     method: "POST",
@@ -716,12 +968,16 @@
                 loadStep2Decompose();
             } catch (err) {
                 showError(err.message);
+            } finally {
+                btn.textContent = origText;
+                btn.disabled = false;
             }
         }
 
         async function loadStep2Decompose() {
             const container = document.getElementById("anchorsContainer");
             container.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">Analyzing goal vector space and decomposing task...</div>`;
+            announceToScreenReader("Decomposing tasks into sub-goals. Please wait.");
             try {
                 const res = await fetch("/api/step2/decompose", {
                     method: "POST",
@@ -732,6 +988,7 @@
                 if (!res.ok) throw new Error(data.error || "Failed to decompose task");
                 
                 renderAnchors(data.anchors);
+                announceToScreenReader(`Decomposed task successfully. Generated ${data.anchors.length} sub-goals.`);
             } catch (err) {
                 showError(err.message);
                 container.innerHTML = `<div style="text-align:center;color:#f87171;font-size:13px;padding:20px;">Decompose failed. Click confirm to proceed with task outline.</div>`;
@@ -747,35 +1004,65 @@
                 container.innerHTML = `<div style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">No sub-goals identified. You can add one below.</div>`;
                 return;
             }
+
+            const coverageCard = document.getElementById("goalCoverageCard");
+            const coverageVal = document.getElementById("goalCoverageVal");
+            if (coverageCard && coverageVal) {
+                coverageVal.textContent = `${anchorList.length} monitoring checkpoint${anchorList.length === 1 ? '' : 's'}`;
+                coverageCard.style.display = "flex";
+            }
             
             anchorList.forEach((anchor, idx) => {
+                const stepNumStr = String(idx + 1).padStart(2, '0');
                 const chip = document.createElement("div");
                 chip.className = "anchor-chip";
                 chip.innerHTML = `
-                    <span class="anchor-text" contenteditable="true" onblur="editAnchor(${idx}, this)">${anchor}</span>
-                    <button class="btn-delete-anchor" onclick="deleteAnchor(${idx})">&times;</button>
+                    <div class="anchor-num-badge">${stepNumStr}</div>
+                    <div style="flex:1; display:flex; flex-direction:column; gap:4px; text-align:left;">
+                        <span class="anchor-target-label">MONITORING TARGET &bull; Configured</span>
+                        <span class="anchor-text" contenteditable="true" role="textbox" aria-label="Sub-goal ${idx + 1}" onblur="editAnchor(${idx}, this)" onkeydown="handleAnchorKeyDown(event, ${idx}, this)">${anchor}</span>
+                    </div>
+                    <button class="btn-delete-anchor" aria-label="Delete sub-goal ${idx + 1}: ${anchor}" onclick="deleteAnchor(${idx})">&times;</button>
                 `;
                 container.appendChild(chip);
             });
         }
 
+        function handleAnchorKeyDown(event, idx, el) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                el.blur();
+            }
+        }
+
         function addAnchor() {
             anchorList.push("New sub-goal description");
             renderAnchors(anchorList);
+            announceToScreenReader("Added new sub-goal.");
+            // Focus the newly added subgoal text input
+            setTimeout(() => {
+                const anchors = document.querySelectorAll("#anchorsContainer .anchor-text");
+                if (anchors.length > 0) {
+                    anchors[anchors.length - 1].focus();
+                }
+            }, 50);
         }
 
         function editAnchor(idx, el) {
             const text = el.textContent.trim();
             if (text) {
                 anchorList[idx] = text;
+                announceToScreenReader(`Sub-goal ${idx + 1} updated to: ${text}`);
             } else {
                 deleteAnchor(idx);
             }
         }
 
         function deleteAnchor(idx) {
+            const deletedName = anchorList[idx];
             anchorList.splice(idx, 1);
             renderAnchors(anchorList);
+            announceToScreenReader(`Deleted sub-goal: ${deletedName}`);
         }
 
         async function confirmStep2() {
@@ -797,8 +1084,34 @@
 
         function setRisk(level) {
             selectedSensitivity = level;
-            document.querySelectorAll(".risk-btn").forEach(b => b.classList.remove("selected"));
-            document.getElementById(`risk-${level}`).classList.add("selected");
+            document.querySelectorAll(".risk-btn").forEach(b => {
+                b.classList.remove("selected");
+                b.setAttribute("aria-checked", "false");
+            });
+            const selectedBtn = document.getElementById(`risk-${level}`);
+            selectedBtn.classList.add("selected");
+            selectedBtn.setAttribute("aria-checked", "true");
+            announceToScreenReader(`Sensitivity set to ${level}`);
+        }
+
+        function handleRiskKeyDown(event, level) {
+            if (event.key === " " || event.key === "Enter") {
+                event.preventDefault();
+                setRisk(level);
+            } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+                event.preventDefault();
+                const levels = ["low", "medium", "high"];
+                let idx = levels.indexOf(level) - 1;
+                if (idx < 0) idx = levels.length - 1;
+                setRisk(levels[idx]);
+                document.getElementById(`risk-${levels[idx]}`).focus();
+            } else if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+                event.preventDefault();
+                const levels = ["low", "medium", "high"];
+                let idx = (levels.indexOf(level) + 1) % levels.length;
+                setRisk(levels[idx]);
+                document.getElementById(`risk-${levels[idx]}`).focus();
+            }
         }
 
         async function confirmStep3() {
